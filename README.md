@@ -7,7 +7,7 @@
 
 <div align="center"><strong>Some ML Model retrieval</strong></div>
 
-[[toc]]
+* VSM
 
 ## VSM
 
