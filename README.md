@@ -7,9 +7,9 @@
 
 <div align="center"><strong>Some ML Model retrieval</strong></div>
 
-* VSM(updated in 2018/11/13)
+* [VSM(updated in 2018/11/13)](#1)
 
-## VSM
+<h2 id="1">VSM</h2>
 
 > VSM = Vector Space Model
 
