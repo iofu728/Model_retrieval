@@ -7,7 +7,7 @@
 
 <div align="center"><strong>Some ML Model retrieval</strong></div>
 
-* VSM
+* [VSM(updated in 2018/11/13)][#VSM]
 
 ## VSM
 
