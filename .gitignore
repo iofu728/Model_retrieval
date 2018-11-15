@@ -3,4 +3,6 @@
 # python cache
 __pycache__
 
-
+# vsm data
+vsm/test3
+vsm/*.csv

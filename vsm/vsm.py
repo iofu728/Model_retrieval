@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-11 20:27:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-13 16:16:28
+# @Last Modified time: 2018-11-15 12:57:02
 
 import math
 import numpy as np
@@ -15,7 +15,7 @@ from utils.utils import begin_time, end_time
 
 class VSM():
     """
-    handle write vsm 馃檳
+    handle write vsm 🤔
     """
 
     def __init__(self):
@@ -31,7 +31,7 @@ class VSM():
         data prepare
         """
         begin_time()
-        file_d = open('test3', 'r')
+        file_d = open('vsm/test3', 'r')
         articles = file_d.readlines()
         threadings = []
         self.articleNum = len(articles)
@@ -124,7 +124,7 @@ class VSM():
         tempMatrix = np.array(self.resultArray)
         result = tempMatrix.dot(tempMatrix.T)
         df = pd.DataFrame(result)
-        df.to_csv("vsm1.csv", header=False)
+        df.to_csv("vsm/vsm2.csv", header=False)
         end_time()
 
     def preSimilarityTest(self, wordMap1, wordMap2):
@@ -185,7 +185,7 @@ class VSM():
                 nowarticle, self.articleMaps[index2]))
 
         df = pd.DataFrame({index1: tempResult})
-        df.to_csv('vsm.csv', mode='a', header=False)
+        df.to_csv('vsm/vsm.csv', mode='a', header=False)
 
     def vsmPre(self, wordMap1, wordMap2):
         """
