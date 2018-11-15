@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-11 20:27:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-15 12:57:02
+# @Last Modified time: 2018-11-15 13:54:23
 
 import math
 import numpy as np
@@ -10,7 +10,7 @@ import pandas as pd
 import threading
 import time
 
-from utils.utils import begin_time, end_time
+from utils.utils import begin_time, end_time, end_time_avage
 
 
 class VSM():
@@ -107,25 +107,29 @@ class VSM():
         if not self.process % 100:
             print(self.process)
 
-    def vsmTest(self):
+    def vsmTest(self, time):
         """
         once to calaulate vsm
         """
-        begin_time()
-        threadings = []
-        for index in range(self.articleNum):
-            work = threading.Thread(target=self.preSimilarity, args=(
-                self.articleMaps[index], index,))
-            threadings.append(work)
-        for work in threadings:
-            work.start()
-        for work in threadings:
-            work.join()
-        tempMatrix = np.array(self.resultArray)
-        result = tempMatrix.dot(tempMatrix.T)
-        df = pd.DataFrame(result)
-        df.to_csv("vsm/vsm2.csv", header=False)
-        end_time()
+        for i in range(time):
+            begin_time()
+            threadings = []
+            for index in range(self.articleNum):
+                work = threading.Thread(target=self.preSimilarity, args=(
+                    self.articleMaps[index], index,))
+                threadings.append(work)
+            for work in threadings:
+                work.start()
+            for work in threadings:
+                work.join()
+            tempMatrix = np.array(self.resultArray)
+            result = tempMatrix.dot(tempMatrix.T)
+            df = pd.DataFrame(result)
+            csvname = "vsm/vsm" + str(i) + ".csv"
+            df.to_csv(csvname, header=False)
+            end_time_avage()
+            self.resultArray = [None for i in range(self.articleNum)]
+            self.process = 0
 
     def preSimilarityTest(self, wordMap1, wordMap2):
         """
