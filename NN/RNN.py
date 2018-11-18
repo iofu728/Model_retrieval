@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 10:04:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 16:27:54
+# @Last Modified time: 2018-11-18 18:32:09
 
 import pickle
 import logging
@@ -11,7 +11,7 @@ import theano
 import theano.tensor as T
 
 from utils.constant import float32, floatX
-from utils.utils import begin_time, end_time, end_time_avage
+from utils.utils import begin_time, end_time, end_time_avage, scan_common, scan_dimshuffle, shared_common, shared_ones, shared_zeros
 
 
 def ortho_weight(ndim):
@@ -47,47 +47,6 @@ def gloroat_uniform(size):
     fan_in, fan_out = size
     s = np.sqrt(6. / (fan_in + fan_out))
     return np.random.uniform(size=size, low=-s, high=s).astype(floatX)
-
-
-def shared_zeros(shape_value, name=None):
-    """
-    theano.shared np.zeros
-    """
-    if name is None:
-        return theano.shared(value=np.zeros(shape_value, dtype=floatX), borrow=True)
-    return theano.shared(value=np.zeros(shape_value, dtype=floatX), borrow=True, name=name)
-
-
-def shared_ones(shape_value, name=None):
-    """
-    theano.shared np.ones
-    """
-    if name is None:
-        return theano.shared(value=np.ones(shape_value, dtype=floatX), borrow=True)
-    return theano.shared(value=np.ones(shape_value, dtype=floatX), borrow=True, name=name)
-
-
-def shared_common(variable, name=None):
-    """
-    theano.shared common
-    """
-    if name is None:
-        return theano.shared(variable, borrow=True)
-    return theano.shared(variable, borrow=True, name=name)
-
-
-def scan_common(step, sequences, outputs_info):
-    """
-    theano scan common
-    """
-    return theano.scan(step, sequences=sequences, outputs_info=outputs_info)
-
-
-def scan_dimshuffle(step, shape_x, shape_y, outputs_info):
-    """
-    theano scan dimshuffle
-    """
-    return theano.scan(step, sequences=[shape_x.dimshuffle(1, 0, 2), T.addbroadcast(shape_y.dimshuffle(1, 0, 'x'), -1)], outputs_info=outputs_info)
 
 
 class RNN(object):
