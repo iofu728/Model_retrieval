@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 16:19:51
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 19:29:06
+# @Last Modified time: 2018-11-18 21:45:21
 
 import logging
 import numpy as np
@@ -12,33 +12,7 @@ import theano.tensor as T
 
 from theano.tensor.nnet import conv
 from utils.constant import floatX
-from utils.utils import shared_common
-
-
-def ReLU(input_value):
-    """
-    ReLU function
-    """
-    return T.maximum(0.0, input_value)
-
-
-def kmax_pooling(input_value, input_shape, k):
-    """
-    k-max pooling
-    """
-    sorted_value = T.argsort(input_value, axis=3)
-    topmax_indexs = sorted_value[:, :, :, -k:]
-    topmax_indexs_sorted = T.sort(topmax_indexs)
-
-    dim0 = T.arange(0, input_shape[0]).repeat(
-        input_shape[1] * input_shape[2] * k)
-    dim1 = T.arange(0, input_shape[1]).repeat(
-        input_shape[2] * k).reshape((1, -1)).repeat(input_shape[0], axis=0).flatten()
-    dim2 = T.arange(0, input_shape[2]).repeat(k).reshape(
-        (1, -1)).repeat(input_shape[0] * input_shape[1], axis=0).flatten()
-    dim3 = topmax_indexs_sorted.flatten()
-
-    return input_value[dim0, dim1, dim2].reshape((input_shape[0], input_shape[1], input_shape[2], k))
+from utils.utils import ReLU, shared_common
 
 
 class LeNetConvPoolLayer(object):
