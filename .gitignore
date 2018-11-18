@@ -9,3 +9,7 @@ vsm/*.csv
 
 # idea
 .idea/
+
+# py compile file
+*.pyc
+*.pyo
