@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 10:04:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 18:32:09
+# @Last Modified time: 2018-11-18 21:47:18
 
 import pickle
 import logging
@@ -11,42 +11,7 @@ import theano
 import theano.tensor as T
 
 from utils.constant import float32, floatX
-from utils.utils import begin_time, end_time, end_time_avage, scan_common, scan_dimshuffle, shared_common, shared_ones, shared_zeros
-
-
-def ortho_weight(ndim):
-    """
-    ortho weight matrix
-    """
-    W = np.random.randn(ndim, ndim)
-    u, s, v = np.linalg.svd(W)
-    return u.astype(float32)
-
-
-def norm_weight(nin, nout=None, scale=0.01, ortho=False):
-    """
-    normalization weight matrix
-    """
-    if nout is None:
-        nout = nin
-    if nout == nin and ortho:
-        W = ortho_weight(nin)
-    else:
-        W = scale * np.random.randn(nin, nout)
-    return W.astype(float32)
-
-
-def unifom_weight(size, scale=0.1):
-    """
-    uniform distribution weight matrix
-    """
-    return np.random.uniform(size=size, low=-scale, high=scale).astype(floatX)
-
-
-def gloroat_uniform(size):
-    fan_in, fan_out = size
-    s = np.sqrt(6. / (fan_in + fan_out))
-    return np.random.uniform(size=size, low=-s, high=s).astype(floatX)
+from utils.utils import begin_time, end_time, end_time_avage, gloroat_uniform, norm_weight, ortho_weight, scan_common, scan_dimshuffle, shared_common, shared_ones, shared_zeros, unifom_weight
 
 
 class RNN(object):
