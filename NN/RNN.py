@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 10:04:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 15:47:57
+# @Last Modified time: 2018-11-18 16:16:23
 
 import pickle
 import datetime
@@ -14,7 +14,8 @@ import theano.tensor as T
 import time
 
 from sklearn.base import BaseEstimator
-from utils.constant import *
+from utils.constant import float32, floatX
+from utils.utils import begin_time, end_time, end_time_avage
 
 
 def ortho_weight(ndim):
@@ -291,6 +292,7 @@ class BiGRU(object):
 
 
 if __name__ == "__main__":
+    begin_time()
     input_value = T.tensor3()
     input2 = T.matrix()
     rnn = GRU(100, 100, 100, batch_size=47)
@@ -298,3 +300,4 @@ if __name__ == "__main__":
     output_value = theano.function([input_value, input2], [res[1]])
     print(output_value(np.random.rand(47, 20, 100).astype('float32'),
                        np.ones((47, 20)).astype('float32'))[0].shape)
+    end_time()
