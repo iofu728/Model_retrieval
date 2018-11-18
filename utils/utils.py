@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 18:23:13
+# @Last Modified time: 2018-11-18 18:46:48
 
 import time
 
@@ -55,8 +55,8 @@ def shared_common(variable, name=None):
     theano.shared common
     """
     if name is None:
-        return theano.shared(variable, borrow=True)
-    return theano.shared(variable, borrow=True, name=name)
+        return theano.shared(value=variable, borrow=True)
+    return theano.shared(value=variable, borrow=True, name=name)
 
 
 def scan_common(step, sequences, outputs_info):
