@@ -4,10 +4,7 @@
 # @Last Modified by:   gunjianpan
 # @Last Modified time: 2018-11-18 21:45:21
 
-import logging
 import numpy as np
-import pickle
-import theano
 import theano.tensor as T
 
 from theano.tensor.nnet import conv

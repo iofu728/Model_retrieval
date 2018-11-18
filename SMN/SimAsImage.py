@@ -4,9 +4,7 @@
 # @Last Modified by:   gunjianpan
 # @Last Modified time: 2018-11-18 22:09:33
 
-import theano
 import theano.tensor as T
-import numpy as np
 
 from NN.Classifier import HiddenLayer2
 from NN.CNN import LeNetConvPoolLayer

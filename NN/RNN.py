@@ -4,13 +4,10 @@
 # @Last Modified by:   gunjianpan
 # @Last Modified time: 2018-11-18 21:47:18
 
-import pickle
-import logging
 import numpy as np
 import theano
 import theano.tensor as T
 
-from utils.constant import float32, floatX
 from utils.utils import begin_time, end_time, end_time_avage, gloroat_uniform, norm_weight, ortho_weight, scan_common, scan_dimshuffle, shared_common, shared_ones, shared_zeros, unifom_weight
 
 
