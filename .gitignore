@@ -13,3 +13,8 @@ vsm/*.csv
 # py compile file
 *.pyc
 *.pyo
+
+# SMN result
+train*
+test*
+*.test

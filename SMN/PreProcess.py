@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:15:38
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 22:19:11
+# @Last Modified time: 2018-11-21 18:54:54
 
 import codecs
 import gensim
@@ -10,43 +10,45 @@ import logging
 import numpy as np
 import pickle
 import theano
+import warnings
 
 from random import shuffle
 from gensim.models.word2vec import Word2Vec
 from collections import defaultdict
+from utils.utils import begin_time, end_time
+
 
 logger = logging.getLogger('relevance_logger')
+warnings.filterwarnings('ignore')
 
 
 def build_multiturn_data(trainfile, max_len=100, isshuffle=False):
     revs = []
     vocab = defaultdict(float)
     total = 1
-    with codecs.open(trainfile, 'r', 'utf-8') as f:
-        for line in f:
-            line = line.replace("_", "")
-            parts = line.strip().split("\t")
+    multiturnDatas = pickle.load(open(trainfile, 'rb'))[2]
+    for line in multiturnDatas:
+        line = line.replace("\n", "")
+        parts = line.strip().split('#')
+        lable = parts[0]
+        message = ""
+        words = set()
+        for i in range(1, len(parts) - 1, 1):
+            message += "_t_"
+            message += parts[i]
+            words.update(set(parts[i].split()))
 
-            lable = parts[0]
-            message = ""
-            words = set()
-            for i in range(1, len(parts) - 1, 1):
-                message += "_t_"
-                message += parts[i]
-                words.update(set(parts[i].split()))
+        response = parts[-1]
 
-            response = parts[-1]
+        data = {"y": lable, "m": message, "r": response}
+        revs.append(data)
+        total += 1
+        if not total % 100000:
+            print(total)
+        words.update(set(response.split()))
 
-            data = {"y": lable, "m": message, "r": response}
-            revs.append(data)
-            total += 1
-            if total % 10000 == 0:
-                print total
-            #words = set(message.split())
-            words.update(set(response.split()))
-
-            for word in words:
-                vocab[word] += 1
+        for word in words:
+            vocab[word] += 1
     logger.info("processed dataset with %d question-answer pairs " %
                 (len(revs)))
     logger.info("vocab size: %d" % (len(vocab)))
@@ -61,8 +63,8 @@ def build_data(trainfile, max_len=20, isshuffle=False):
     total = 1
     with codecs.open(trainfile, 'r', 'utf-8') as f:
         for line in f:
-            line = line.replace("_", "")
-            parts = line.strip().split("\t")
+            line = line.replace("\n", "")
+            parts = line.strip().split("#")
 
             topic = parts[0]
             topic_r = parts[1]
@@ -91,10 +93,10 @@ class WordVecs(object):
     def __init__(self, fname, vocab, binary, gensim):
         if gensim:
             word_vecs = self.load_gensim(fname, vocab)
-        self.k = len(word_vecs.values()[0])
+        self.k = len(list(word_vecs.values())[0])
         self.W, self.word_idx_map = self.get_W(word_vecs, k=self.k)
 
-    def get_W(self, word_vecs, k=300):
+    def get_W(self, word_vecs, k=200):
         """
         Get word matrix. W[i] is the vector for word indexed by i
         """
@@ -125,18 +127,18 @@ class WordVecs(object):
                 miss = miss + 1
                 word_vecs[pair] = np.array([0.] * model.vector_size)
                 #weights.append([0.] * model.vector_size)
-        print 'transfer', total_inside_new_embed, 'words from the embedding file, total', len(vocab), 'candidate'
-        print 'miss word2vec', miss
+        print('transfer', total_inside_new_embed,
+              'words from the embedding file, total', len(vocab), 'candidate')
+        print('miss word2vec', miss)
         return word_vecs
 
 
 def createtopicvec():
     max_topicword = 50
-    model = Word2Vec.load_word2vec_format(r"\\msra-sandvm-001\v-wuyu\Models\W2V\Ubuntu\word2vec.model")
+    model = Word2Vec.load_word2vec_format("SMN/trainresult")
     topicmatrix = np.zeros(shape=(100, max_topicword, 100),
                            dtype=theano.config.floatX)
-    file = open(
-        r"\\msra-sandvm-001\v-wuyu\project\pythonproject\ACL2016\mergedic2.txt")
+    file = open("SMN/trainpre")
     i = 0
     miss = 0
     for line in file:
@@ -148,28 +150,32 @@ def createtopicvec():
                 miss = miss + 1
 
         i = i + 1
-    print "miss word2vec", miss
+    print("miss word2vec", miss)
     return topicmatrix
 
 
 def ParseSingleTurn():
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    revs, vocab, max_len = build_data(r"\\msra-sandvm-001\v-wuyu\Data\ubuntu_data\ubuntu_data\train.topic", isshuffle=True)
-    word2vec = WordVecs(r"\\msra-sandvm-001\v-wuyu\Models\W2V\Ubuntu\word2vec.model", vocab, True, True)
+    revs, vocab, max_len = build_data("SMN/trainpre", isshuffle=True)
+    word2vec = WordVecs("SMN/trainresult", vocab, True, True)
     pickle.dump([revs, word2vec, max_len, createtopicvec()],
-                open("ubuntu_data.test", 'wb'))
+                open("smn_data.test", 'wb'))
     logger.info("dataset created!")
 
 
 def ParseMultiTurn():
+    begin_time()
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
-    revs, vocab, max_len = build_multiturn_data(r"\\msra-sandvm-001\v-wuyu\Data\ubuntu_data\ubuntu_data\test.txt", isshuffle=False)
-    word2vec = WordVecs(r"\\msra-sandvm-001\v-wuyu\Models\W2V\Ubuntu\word2vec.model", vocab, True, True)
-    pickle.dump([revs, word2vec, max_len], open("ubuntu_data.mul.test", 'wb'))
+    revs, vocab, max_len = build_multiturn_data(
+        "SMN/trainpre", isshuffle=False)
+    word2vec = WordVecs("SMN/trainresult", vocab, True, True)
+    pickle.dump([revs, word2vec, max_len], open("smn_data.mul.test", 'wb'))
     logger.info("dataset created!")
+    end_time()
 
 
+W, word_idx_map = get_W(word_vecs, k=k)
 if __name__ == "__main__":
     ParseMultiTurn()
