@@ -18,3 +18,7 @@ vsm/*.csv
 train*
 test*
 *.test
+*.bin
+
+# venv
+venv

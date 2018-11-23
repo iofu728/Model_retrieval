@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 21:03:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 21:48:07
+# @Last Modified time: 2018-11-22 15:27:47
 
 import numpy as np
 import theano
@@ -13,13 +13,16 @@ from utils.constant import floatX
 from utils.utils import shared_common
 
 
+theano.config.floatX = 'float32'
+
+
 def as_floatX(variable):
     if isinstance(variable, float):
-        return np.cast[floatX](variable)
+        return np.cast[theano.config.floatX](variable)
 
     if isinstance(variable, np.ndarray):
-        return np.cast[floatX](variable)
-    return T.cast(variable, floatX)
+        return np.cast[theano.config.floatX](variable)
+    return T.cast(variable, theano.config.floatX)
 
 
 class RMSprop(object):

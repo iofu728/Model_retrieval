@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:15:38
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-21 18:54:54
+# @Last Modified time: 2018-11-22 14:06:24
 
 import codecs
 import gensim
@@ -15,6 +15,7 @@ import warnings
 from random import shuffle
 from gensim.models.word2vec import Word2Vec
 from collections import defaultdict
+from utils.constant import floatX
 from utils.utils import begin_time, end_time
 
 
@@ -137,7 +138,7 @@ def createtopicvec():
     max_topicword = 50
     model = Word2Vec.load_word2vec_format("SMN/trainresult")
     topicmatrix = np.zeros(shape=(100, max_topicword, 100),
-                           dtype=theano.config.floatX)
+                           dtype=floatX)
     file = open("SMN/trainpre")
     i = 0
     miss = 0
@@ -169,13 +170,12 @@ def ParseMultiTurn():
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     revs, vocab, max_len = build_multiturn_data(
-        "SMN/trainpre", isshuffle=False)
+        "traintestpre", isshuffle=False)
     word2vec = WordVecs("SMN/trainresult", vocab, True, True)
-    pickle.dump([revs, word2vec, max_len], open("smn_data.mul.test", 'wb'))
+    pickle.dump([revs, word2vec, max_len], open("smn_data_test.test", 'wb'))
     logger.info("dataset created!")
     end_time()
 
 
-W, word_idx_map = get_W(word_vecs, k=k)
 if __name__ == "__main__":
     ParseMultiTurn()

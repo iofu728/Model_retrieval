@@ -23,21 +23,18 @@ from __future__ import print_function
 
 __docformat__ = 'restructedtext en'
 
-
 import os
 import sys
 import timeit
-
 import numpy
-
 import theano
 import theano.tensor as T
 
+from NN.logistic_sgd import LogisticRegression, load_data
+from utils.constant import floatX
 
-from logistic_sgd import LogisticRegression, load_data
 
-
-
+theano.config.floatX= 'float32'
 
 def _dropout_from_layer(rng, layer, p):
     """p is the probablity of dropping a unit
@@ -48,7 +45,7 @@ def _dropout_from_layer(rng, layer, p):
     mask = srng.binomial(n=1, p=1-p, size=layer.shape)
     # The cast is important because
     # int * float32 = float64 which pulls things off the gpu
-    output = layer * T.cast(mask, theano.config.floatX)
+    output = layer * T.cast(mask, floatX)
     return output
 # start-snippet-1
 class HiddenLayer(object):
@@ -86,7 +83,7 @@ class HiddenLayer(object):
         # from sqrt(-6./(n_in+n_hidden)) and sqrt(6./(n_in+n_hidden))
         # for tanh activation function
         # the output of uniform if converted using asarray to dtype
-        # theano.config.floatX so that the code is runable on GPU
+        # floatX so that the code is runable on GPU
         # Note : optimal initialization of weights is dependent on the
         #        activation function used (among other things).
         #        For example, results presented in [Xavier10] suggest that you
@@ -101,7 +98,7 @@ class HiddenLayer(object):
                     high=numpy.sqrt(6. / (n_in + n_out)),
                     size=(n_in, n_out)
                 ),
-                dtype=theano.config.floatX
+                dtype=floatX
             )
             if activation == theano.tensor.nnet.sigmoid:
                 W_values *= 4
@@ -109,7 +106,7 @@ class HiddenLayer(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
+            b_values = numpy.zeros((n_out,), dtype=floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         self.W = W
@@ -158,7 +155,7 @@ class HiddenLayer2(object):
         # from sqrt(-6./(n_in+n_hidden)) and sqrt(6./(n_in+n_hidden))
         # for tanh activation function
         # the output of uniform if converted using asarray to dtype
-        # theano.config.floatX so that the code is runable on GPU
+        # floatX so that the code is runable on GPU
         # Note : optimal initialization of weights is dependent on the
         #        activation function used (among other things).
         #        For example, results presented in [Xavier10] suggest that you
@@ -173,7 +170,7 @@ class HiddenLayer2(object):
                     high=numpy.sqrt(6. / (n_in + n_out)),
                     size=(n_in, n_out)
                 ),
-                dtype=theano.config.floatX
+                dtype=floatX
             )
             if activation == theano.tensor.nnet.sigmoid:
                 W_values *= 4
@@ -181,7 +178,7 @@ class HiddenLayer2(object):
             W = theano.shared(value=W_values, name='W', borrow=True)
 
         if b is None:
-            b_values = numpy.zeros((n_out,), dtype=theano.config.floatX)
+            b_values = numpy.zeros((n_out,), dtype=floatX)
             b = theano.shared(value=b_values, name='b', borrow=True)
 
         self.W = W
@@ -215,7 +212,7 @@ class TensorClassifier(object):
                     #     high=numpy.sqrt(6. / (n_left+n_right)),
                     #     size=(n_left, self.dim_tensor, n_right)
                     # ),
-                    dtype=theano.config.floatX
+                    dtype=floatX
                 )
 
         self.W = theano.shared(value=W_values, name='W', borrow=True)
@@ -225,7 +222,7 @@ class TensorClassifier(object):
                     high=numpy.sqrt(6. / (n_left+n_right)),
                     size=(n_left + n_right, self.dim_tensor)
                 ),
-                dtype=theano.config.floatX
+                dtype=floatX
             ), borrow=True)
         self.params = [self.W,self.W2]
 
@@ -359,7 +356,7 @@ class BilinearLR(object):
                 W_bound = numpy.sqrt(6. / (n_in+n_out))
                 self.W = theano.shared(numpy.asarray(rng.uniform(low=-W_bound,high=W_bound,size=(n_in,n_out
                                                                                                  )),
-                                                dtype=theano.config.floatX),borrow=True)
+                                                dtype=floatX),borrow=True)
         else:
             self.W = W
 

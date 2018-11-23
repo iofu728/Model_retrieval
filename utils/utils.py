@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 22:07:54
+# @Last Modified time: 2018-11-23 11:08:49
 
 import numpy as np
 import time
@@ -11,6 +11,8 @@ import theano
 import theano.tensor as T
 
 from utils.constant import float32, floatX
+
+theano.config.floatX = 'float32'
 
 start = 0
 spendList = []
@@ -137,3 +139,13 @@ def gloroat_uniform(size):
     fan_in, fan_out = size
     s = np.sqrt(6. / (fan_in + fan_out))
     return np.random.uniform(size=size, low=-s, high=s).astype(floatX)
+
+def flatten(lst):
+    """
+    multilevel flatten generate
+    """
+    for item in lst:
+        if isinstance(item, collections.Iterable) and not isinstance(item, (str, bytes)):
+            yield from flatten(item)
+        else:
+            yield item

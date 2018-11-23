@@ -2,15 +2,14 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-21 18:27:15
+# @Last Modified time: 2018-11-23 11:08:43
 
 import codecs
 import collections
-import numpy as np
 import pickle
 import threading
 
-from utils.utils import begin_time, end_time, end_time_avage
+from utils.utils import begin_time, end_time
 
 
 class SampleConduct(object):
@@ -133,14 +132,3 @@ def preWord2vec(input_file, output_file):
     model = Word2Vec(sentences, workers=100, min_count=5, size=200)
     model.save(output_file)
     end_time()
-
-
-def flatten(lst):
-    """
-    multilevel flatten generate
-    """
-    for item in lst:
-        if isinstance(item, collections.Iterable) and not isinstance(item, (str, bytes)):
-            yield from flatten(item)
-        else:
-            yield item
