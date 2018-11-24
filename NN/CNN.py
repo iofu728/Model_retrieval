@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 16:19:51
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-22 14:50:40
+# @Last Modified time: 2018-11-24 13:54:58
 
 import numpy as np
 import theano
@@ -11,8 +11,6 @@ import theano.tensor as T
 from theano.tensor.nnet import conv
 from utils.constant import floatX
 from utils.utils import ReLU, shared_common
-
-theano.config.floatX = 'float32'
 
 
 class LeNetConvPoolLayer(object):

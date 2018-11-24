@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 21:53:33
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-23 11:09:35
+# @Last Modified time: 2018-11-24 13:54:37
 
 import theano
 import theano.tensor as T
@@ -10,8 +10,6 @@ import theano.tensor as T
 from NN.Classifier import HiddenLayer2
 from NN.CNN import LeNetConvPoolLayer
 from utils.utils import kmax_pooling, ortho_weight, shared_common, flatten
-
-theano.config.floatX = 'float32'
 
 
 def batched_dot(input_1, input_2):

@@ -2,10 +2,9 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-23 11:08:43
+# @Last Modified time: 2018-11-24 13:53:10
 
 import codecs
-import collections
 import pickle
 import threading
 
@@ -28,7 +27,7 @@ class SampleConduct(object):
         """
         get origin sample master for mult-Theading
         """
-        begin_time()
+        version = begin_time()
         with codecs.open(input_file, 'r', 'utf-8') as f:
             self.origin_sample = f.readlines()
         threadings = []
@@ -52,7 +51,7 @@ class SampleConduct(object):
         self.pre = list(flatten(self.pre))
         pickle.dump([self.content, self.response, self.pre],
                     open(output_file, "wb"))
-        end_time()
+        end_time(version)
 
     def origin_sample_agent(self, start, end):
         """
@@ -125,10 +124,10 @@ def preWord2vec(input_file, output_file):
     """
     word bag construction
     """
-    begin_time()
+    version = begin_time()
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     sentences = GetWords(input_file)
     model = Word2Vec(sentences, workers=100, min_count=5, size=200)
     model.save(output_file)
-    end_time()
+    end_time(version)

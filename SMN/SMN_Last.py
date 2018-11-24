@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:08:40
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-23 11:10:12
+# @Last Modified time: 2018-11-24 13:53:28
 
 import pickle
 import numpy as np
@@ -10,15 +10,11 @@ import theano
 import theano.tensor as T
 
 from NN.Classifier import LogisticRegression
-from gensim.models.word2vec import Word2Vec
-from SMN.PreProcess import WordVecs
 from NN.RNN import GRU
 from NN.Optimization import Adam
 from SMN.SimAsImage import ConvSim
 from utils.constant import floatX, max_turn
-from utils.utils import shared_common, begin_time, end_time, flatten
-
-theano.config.floatX = 'float32'
+from utils.utils import begin_time, end_time, flatten, shared_common, spend_time
 
 
 def get_idx_from_sent_msg(sents, word_idx_map, max_l=50, mask=False):
@@ -426,20 +422,18 @@ def get_session_mask(sents):
     return session_mask
 
 
-train, val, test = [], [], []
-
-
-def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], validation_num=50000, block_size=100000):
+def make_data(revs, word_idx_map, max_l=50, validation_num=50000, block_size=100000):
     """
     Transforms sentences into a 2-d matrix.
     """
-    threadings = []
+    version = begin_time()
+    train, val, test, threadings = [], [], [], []
     num = len(revs)
     start = 0
     end = min(block_size, num - 1)
     for block in range(int(num / block_size) + 1):
-        work = threading.Thread(
-            target=make_data_theading, args=(start, end,))
+        work = threading.Thread(target=make_data_theading, args=(
+            revs, word_idx_map, max_l, validation_num, start, end,))
         threadings.append(work)
         start = end + 1
         end = min(num - 1, block_size * (block + 1))
@@ -447,13 +441,17 @@ def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], 
         work.start()
     for work in threadings:
         work.join()
+        temptrain, tempval = work.get_result()
+        train.append(temptrain)
+        val.append(tempval)
 
     train = list(flatten(train))
     val = list(flatten(val))
     train = np.array(train, dtype="int")
     val = np.array(val, dtype="int")
     test = np.array(test, dtype="int")
-    print('trainning data', len(train), 'val data', len(val))
+    print('trainning data', len(train), 'val data',
+          len(val), 'spend time:', spend_time(version))
     return [train, val, test]
 
 
@@ -473,12 +471,11 @@ def make_data_theading(revs, word_idx_map, max_l, validation_num, start, end):
             temptrain.append(sent)
         else:
             tempval.append(sent)
-    train.append(temptrain)
-    val.append(tempval)
+    return temptrain, tempval
 
 
 if __name__ == "__main__":
-    begin_time()
+    version = begin_time()
     train_flag = True
     max_word_per_utterence = 50
     x = pickle.load(open("smn_data.mul.test", "rb"))
@@ -493,4 +490,4 @@ if __name__ == "__main__":
     else:
         predict(datasets, wordvecs.W, batch_size=200,
                 max_l=max_word_per_utterence, hidden_size=200, word_embedding_size=200)
-    end_time()
+    end_time(version)

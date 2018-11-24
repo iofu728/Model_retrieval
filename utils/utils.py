@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-23 11:08:49
+# @Last Modified time: 2018-11-24 13:49:09
 
 import numpy as np
 import time
@@ -14,25 +14,33 @@ from utils.constant import float32, floatX
 
 theano.config.floatX = 'float32'
 
-start = 0
+start = []
 spendList = []
 
 
 def begin_time():
+    """
+    multi-version time manage
+    """
     global start
-    start = time.time()
+    start.append(time.time())
+    return len(start) - 1
 
 
-def end_time_avage():
-    termSpend = time.time() - start
+def end_time_avage(version):
+    termSpend = time.time() - start[version]
     spendList.append(termSpend)
     print(str(termSpend)[0:5] + ' ' +
           str(sum(spendList) / len(spendList))[0:5])
 
 
-def end_time():
-    termSpend = time.time() - start
+def end_time(version):
+    termSpend = time.time() - start[version]
     print(str(termSpend)[0:5])
+
+
+def spend_time(version):
+    return str(time.time() - start[version])[0:5]
 
 
 def empty():
@@ -139,6 +147,7 @@ def gloroat_uniform(size):
     fan_in, fan_out = size
     s = np.sqrt(6. / (fan_in + fan_out))
     return np.random.uniform(size=size, low=-s, high=s).astype(floatX)
+
 
 def flatten(lst):
     """

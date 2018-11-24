@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 10:04:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-18 21:47:18
+# @Last Modified time: 2018-11-24 13:52:31
 
 import numpy as np
 import theano
@@ -209,7 +209,7 @@ class BiGRU(object):
 
 
 if __name__ == "__main__":
-    begin_time()
+    version = begin_time()
     input_value = T.tensor3()
     input2 = T.matrix()
     rnn = GRU(100, 100, 100, batch_size=47)
@@ -217,4 +217,4 @@ if __name__ == "__main__":
     output_value = theano.function([input_value, input2], [res[1]])
     print(output_value(np.random.rand(47, 20, 100).astype('float32'),
                        np.ones((47, 20)).astype('float32'))[0].shape)
-    end_time()
+    end_time(version)

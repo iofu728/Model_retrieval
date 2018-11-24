@@ -33,9 +33,6 @@ import theano.tensor as T
 from NN.logistic_sgd import LogisticRegression, load_data
 from utils.constant import floatX
 
-
-theano.config.floatX= 'float32'
-
 def _dropout_from_layer(rng, layer, p):
     """p is the probablity of dropping a unit
     """

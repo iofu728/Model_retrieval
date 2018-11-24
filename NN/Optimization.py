@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 21:03:13
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-22 15:27:47
+# @Last Modified time: 2018-11-24 13:54:50
 
 import numpy as np
 import theano
@@ -11,9 +11,6 @@ import theano.tensor as T
 from collections import defaultdict, OrderedDict
 from utils.constant import floatX
 from utils.utils import shared_common
-
-
-theano.config.floatX = 'float32'
 
 
 def as_floatX(variable):

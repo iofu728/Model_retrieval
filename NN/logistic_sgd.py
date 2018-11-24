@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 20:31:37
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-22 14:49:15
+# @Last Modified time: 2018-11-24 13:54:54
 
 import gzip
 import numpy as np
@@ -12,8 +12,6 @@ import theano.tensor as T
 
 from utils.constant import floatX
 from utils.utils import shared_common, shared_ones, shared_zeros
-
-theano.config.floatX = 'float32'
 
 
 class SumRegression(object):
