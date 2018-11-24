@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-24 13:53:10
+# @Last Modified time: 2018-11-24 13:57:08
 
 import codecs
 import pickle
@@ -84,7 +84,7 @@ class SampleConduct(object):
         origin sample direct no theading
         """
 
-        begin_time()
+        version = begin_time()
         with codecs.open(input_file, 'r', 'utf-8') as f:
             temp_context = ''
             last_index = ''
@@ -102,7 +102,7 @@ class SampleConduct(object):
                         temp_context += (last_index + '#')
                     last_index = tempword[:-1].strip()
             pickle.dump([content, response, pre], open(output_file, "wb"))
-        end_time()
+        end_time(version)
 
 
 class GetWords(object):
