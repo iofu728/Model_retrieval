@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:15:38
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-24 13:53:04
+# @Last Modified time: 2018-11-25 17:00:39
 
 import codecs
 import gensim
@@ -170,9 +170,9 @@ def ParseMultiTurn():
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
     revs, vocab, max_len = build_multiturn_data(
-        "traintestpre", isshuffle=False)
+        "trainpre3", isshuffle=False)
     word2vec = WordVecs("SMN/trainresult", vocab, True, True)
-    pickle.dump([revs, word2vec, max_len], open("smn_data_test.test", 'wb'))
+    pickle.dump([revs, word2vec, max_len], open("smn_data_test3.test", 'wb'))
     logger.info("dataset created!")
     end_time(version)
 

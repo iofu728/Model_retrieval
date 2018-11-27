@@ -3,8 +3,9 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-24 13:49:09
+# @Last Modified time: 2018-11-25 09:55:43
 
+import collections
 import numpy as np
 import time
 import theano

@@ -3,9 +3,8 @@
 # python cache
 __pycache__
 
-# vsm data
-vsm/test3
-vsm/*.csv
+# data
+*/data/
 
 # idea
 .idea/
@@ -13,12 +12,6 @@ vsm/*.csv
 # py compile file
 *.pyc
 *.pyo
-
-# SMN result
-train*
-test*
-*.test
-*.bin
 
 # venv
 venv

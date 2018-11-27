@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:08:40
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-24 13:53:28
+# @Last Modified time: 2018-11-27 11:14:24
 
 import pickle
 import numpy as np
@@ -80,7 +80,7 @@ def _dropout_from_layer(rng, layer, p):
 def predict(datasets,
             U,  # pre-trained word embeddings
             n_epochs=5, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100,
-            session_hidden_size=50, session_input_size=50, model_name='SMN_last.bin'):  # for optimization
+            session_hidden_size=50, session_input_size=50, model_name='SMN_last3.bin'):  # for optimization
     """
     return: a list of dicts of lists, each list contains (ansId, groundTruth, prediction) for a question
     """
@@ -96,7 +96,7 @@ def predict(datasets,
         lx.append(T.matrix())
         lxmask.append(T.matrix())
 
-    index = T.scalar()
+    index = T.lscalar()
     rx = T.matrix('rx')
     rxmask = T.matrix()
     y = T.ivector('y')
@@ -109,30 +109,10 @@ def predict(datasets,
     rlayer0_input = Words[T.cast(rx.flatten(), dtype="int32")].reshape(
         (rx.shape[0], rx.shape[1], Words.shape[1]))  # input: word embeddings of the mini batch
 
-    train_set, dev_set, test_set = datasets[0], datasets[1], datasets[2]
+    dev_set, test_set = datasets[1], datasets[2]
 
-    train_set_lx = []
-    train_set_lx_mask = []
     q_embedding = []
     offset = 2 * lsize
-    for i in range(max_turn):
-        train_set_lx.append(shared_common(np.asarray(
-            train_set[:, offset * i:offset * i + lsize], dtype=floatX)))
-
-        train_set_lx_mask.append(
-            shared_common(np.asarray(train_set[:, offset * i + lsize:offset * i + 2 * lsize], dtype=floatX)))
-
-    # print(train_set_lx.shape)
-    train_set_rx = shared_common(np.asarray(
-        train_set[:, offset * max_turn:offset * max_turn + lsize], dtype=floatX))
-
-    train_set_rx_mask = shared_common(
-        np.asarray(train_set[:, offset * max_turn + lsize:offset * max_turn + 2 * lsize], dtype=floatX))
-
-    train_set_session_mask = shared_common(np.asarray(
-        train_set[:, -max_turn - 1:-1], dtype=floatX))
-
-    train_set_y = shared_common(np.asarray(train_set[:, -1], dtype="int32"))
 
     val_set_lx = []
     val_set_lx_mask = []
@@ -149,19 +129,6 @@ def predict(datasets,
     val_set_session_mask = shared_common(np.asarray(
         dev_set[:, -max_turn - 1:-1], dtype=floatX))
     val_set_y = shared_common(np.asarray(dev_set[:, -1], dtype="int32"))
-
-    dic = {}
-    for i in range(max_turn):
-        dic[lx[i]] = train_set_lx[i][index *
-                                     batch_size:(index + 1) * batch_size]
-        dic[lxmask[i]] = train_set_lx_mask[i][index *
-                                              batch_size:(index + 1) * batch_size]
-    dic[rx] = train_set_rx[index * batch_size:(index + 1) * batch_size]
-    dic[sessionmask] = train_set_session_mask[index *
-                                              batch_size:(index + 1) * batch_size]
-    dic[rxmask] = train_set_rx_mask[index *
-                                    batch_size:(index + 1) * batch_size]
-    dic[y] = train_set_y[index * batch_size:(index + 1) * batch_size]
 
     val_dic = {}
     for i in range(max_turn):
@@ -189,8 +156,6 @@ def predict(datasets,
     poolingoutput = []
     test = theano.function([index], pooling_layer(llayer0_input[-4], rlayer0_input,
                                                   q_embedding[i], r_embedding), givens=val_dic, on_unused_input='ignore')
-    print(test(0).shape)
-    print(test(0))
 
     for i in range(max_turn):
         poolingoutput.append(pooling_layer(llayer0_input[i], rlayer0_input,
@@ -211,6 +176,7 @@ def predict(datasets,
     params += [Words]
 
     load_params(params, model_name)
+    print(params)
 
     predict = classifier.predict_prob
 
@@ -222,18 +188,17 @@ def predict(datasets,
         a, b, c, d = val_model(minibatch_index)
         print(c)
         loss += c
-        # print(b.shape)
         for i in range(batch_size):
             f.write(str(b[i][1]))
-            f.write('\t')
-            f.write(str(a[i]))
             f.write('\n')
-            # print(b[i])
+            # f.write(str(a[i]))
+            # f.write('\n')
+            # print(b[i][1], a[i], c[i], d[i])
     print(loss / (datasets[1].shape[0] / batch_size))
 
 
 def load_params(params, filename):
-    f = open(filename)
+    f = open(filename, 'rb')
     num_params = pickle.load(f)
     for p, w in zip(params, num_params):
         p.set_value(w.astype(floatX), borrow=True)
@@ -243,7 +208,7 @@ def load_params(params, filename):
 def train(datasets,
           U,  # pre-trained word embeddings
           n_epochs=5, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100,
-          session_hidden_size=50, session_input_size=50, model_name='SMN_last.bin'):
+          session_hidden_size=50, session_input_size=50, model_name='SMN_last3.bin'):
     hiddensize = hidden_size
     U = U.astype(dtype=floatX)
     rng = np.random.RandomState(3435)
@@ -422,7 +387,7 @@ def get_session_mask(sents):
     return session_mask
 
 
-def make_data(revs, word_idx_map, max_l=50, validation_num=50000, block_size=100000):
+def make_data_train(revs, word_idx_map, max_l=50, validation_num=50000, block_size=100000):
     """
     Transforms sentences into a 2-d matrix.
     """
@@ -459,6 +424,7 @@ def make_data_theading(revs, word_idx_map, max_l, validation_num, start, end):
     """
     make data theading
     """
+    version = begin_time()
     temptrain, tempval, temptest = [], [], []
 
     for index in range(start, end):
@@ -474,11 +440,34 @@ def make_data_theading(revs, word_idx_map, max_l, validation_num, start, end):
     return temptrain, tempval
 
 
+def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], validation_num=100000):
+    """
+    Transforms sentences into a 2-d matrix.
+    """
+    train, val, test = [], [], []
+    for rev in revs:
+        sent = get_idx_from_sent_msg(rev["m"], word_idx_map, max_l, True)
+        sent += get_idx_from_sent(rev["r"], word_idx_map, max_l, True)
+        sent += get_session_mask(rev["m"])
+        sent.append(int(rev["y"]))
+        if len(val) > validation_num:
+            train.append(sent)
+        else:
+            val.append(sent)
+
+    train = np.array(train, dtype="int")
+    val = np.array(val, dtype="int")
+    test = np.array(test, dtype="int")
+    print('trainning data', len(train), 'val data',
+          len(val), 'spend time:', spend_time(version))
+    return [train, val, test]
+
+
 if __name__ == "__main__":
     version = begin_time()
-    train_flag = True
+    train_flag = False
     max_word_per_utterence = 50
-    x = pickle.load(open("smn_data.mul.test", "rb"))
+    x = pickle.load(open("smn_data_result.test", "rb"))
     revs, wordvecs, max_l2 = x[0], x[1], x[2]
 
     datasets = make_data(revs, wordvecs.word_idx_map,
