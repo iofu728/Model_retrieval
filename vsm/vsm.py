@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-11 20:27:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-15 13:54:23
+# @Last Modified time: 2018-11-24 13:56:46
 
 import math
 import numpy as np
@@ -30,7 +30,7 @@ class VSM():
         """
         data prepare
         """
-        begin_time()
+        version = begin_time()
         file_d = open('vsm/test3', 'r')
         articles = file_d.readlines()
         threadings = []
@@ -45,7 +45,7 @@ class VSM():
             work.start()
         for work in threadings:
             work.join()
-        end_time()
+        end_time(version)
 
     def preDataBasic(self, article, articleId):
         """
@@ -167,7 +167,7 @@ class VSM():
         calculate vsm
         """
         #: todo write block
-        begin_time()
+        version = begin_time()
         threadings = []
         for index1 in range(self.articleNum):
             work = threading.Thread(target=self.vsmThread, args=(index1,))
@@ -176,7 +176,7 @@ class VSM():
             work.start()
         for work in threadings:
             work.join()
-        end_time()
+        end_time(version)
 
     def vsmThread(self, index1):
         """

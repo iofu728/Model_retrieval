@@ -3,6 +3,15 @@
 # python cache
 __pycache__
 
-# vsm data
-vsm/test3
-vsm/*.csv
+# data
+*/data/
+
+# idea
+.idea/
+
+# py compile file
+*.pyc
+*.pyo
+
+# venv
+venv
