@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:15:38
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-25 17:00:39
+# @Last Modified time: 2018-12-02 16:17:07
 
 import codecs
 import gensim
@@ -11,12 +11,13 @@ import numpy as np
 import pickle
 import theano
 import warnings
+import SMN.sampleConduct
 
+from gensim.models import KeyedVectors
 from random import shuffle
-from gensim.models.word2vec import Word2Vec
 from collections import defaultdict
 from utils.constant import floatX
-from utils.utils import begin_time, end_time
+from utils.utils import begin_time, end_time, dump_bigger, load_bigger
 
 
 logger = logging.getLogger('relevance_logger')
@@ -27,7 +28,7 @@ def build_multiturn_data(trainfile, max_len=100, isshuffle=False):
     revs = []
     vocab = defaultdict(float)
     total = 1
-    multiturnDatas = pickle.load(open(trainfile, 'rb'))[2]
+    multiturnDatas = pickle.load(open(trainfile, 'rb'))
     for line in multiturnDatas:
         line = line.replace("\n", "")
         parts = line.strip().split('#')
@@ -113,7 +114,8 @@ class WordVecs(object):
         return W, word_idx_map
 
     def load_gensim(self, fname, vocab):
-        model = Word2Vec.load(fname)
+
+        model = load_bigger(fname)
         weights = [[0.] * model.vector_size]
         word_vecs = {}
         total_inside_new_embed = 0
@@ -165,16 +167,59 @@ def ParseSingleTurn():
     logger.info("dataset created!")
 
 
-def ParseMultiTurn():
-    version = begin_time()
+def ParseMultiTurn(input_file, utterence_file='SMN/data/utterence_11.pkl', embedding_file='SMN/data/embedding_tencent.pkl', pre_file='SMN/data/smn_11.pkl', block_size=20000):
+    """
+    prepare data
+    """
     logging.basicConfig(
         format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    version = begin_time()
+    sampleConduct = SMN.sampleConduct.SampleConduct()
+    sampleConduct.origin_sample_master(input_file, utterence_file, block_size)
     revs, vocab, max_len = build_multiturn_data(
-        "trainpre3", isshuffle=False)
-    word2vec = WordVecs("SMN/trainresult", vocab, True, True)
-    pickle.dump([revs, word2vec, max_len], open("smn_data_test3.test", 'wb'))
+        utterence_file, isshuffle=False)
+    word2vec = WordVecs(embedding_file, vocab, True, True)
+    dump_bigger([revs, word2vec, max_len], pre_file)
     logger.info("dataset created!")
     end_time(version)
+
+
+def ParseMultiTurnTest(input_file, utterence_file='SMN/data/utterence_little2.pkl', embedding_file='SMN/data/embedding_tencent.pkl', pre_file='SMN/data/smn_little2.pkl', block_size=20000):
+    """
+    prepare data
+    """
+    logging.basicConfig(
+        format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    version = begin_time()
+    sampleConduct = SMN.sampleConduct.SampleConduct()
+    sampleConduct.origin_test_master(input_file, utterence_file, block_size)
+    revs, vocab, max_len = build_multiturn_data(
+        utterence_file, isshuffle=False)
+    word2vec = WordVecs(embedding_file, vocab, True, True)
+    pickle.dump([revs, word2vec, max_len], open(pre_file, 'wb'))
+    logger.info("dataset created!")
+    end_time(version)
+
+
+def embedding_model_test(input_file, utterence_file='SMN/data/utterence_embed1.pkl', embedding_file='SMN/data/embedding_dataset.pkl', pre_file='SMN/data/smn_embedding.pkl', block_size=1000):
+    """
+    prepare data
+    """
+    logging.basicConfig(
+        format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+    version = begin_time()
+    sampleConduct = SMN.sampleConduct.SampleConduct()
+    sampleConduct.origin_test_master(input_file, utterence_file, block_size)
+    sampleConduct.embedding_test_master(utterence_file, embedding_file)
+    end_time(version)
+
+
+def dump_word2vec(input_file='../Tencent_AILab_ChineseEmbedding.txt', output_file='SMN/data/embedding_tencent.pkl'):
+    """
+    load word2vec model
+    """
+    model = KeyedVectors.load_word2vec_format(input_file, binary=False)
+    dump_bigger(model, output_file)
 
 
 if __name__ == "__main__":

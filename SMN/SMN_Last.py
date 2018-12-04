@@ -2,19 +2,22 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:08:40
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-27 11:14:24
+# @Last Modified time: 2018-12-02 19:29:24
 
 import pickle
 import numpy as np
+import queue
 import theano
 import theano.tensor as T
+import threading
 
 from NN.Classifier import LogisticRegression
 from NN.RNN import GRU
 from NN.Optimization import Adam
 from SMN.SimAsImage import ConvSim
 from utils.constant import floatX, max_turn
-from utils.utils import begin_time, end_time, flatten, shared_common, spend_time
+from utils.utils import begin_time, end_time, flatten, shared_common, spend_time, dump_bigger, load_bigger
+from SMN.sampleConduct import SampleConduct
 
 
 def get_idx_from_sent_msg(sents, word_idx_map, max_l=50, mask=False):
@@ -79,8 +82,8 @@ def _dropout_from_layer(rng, layer, p):
 
 def predict(datasets,
             U,  # pre-trained word embeddings
-            n_epochs=5, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100,
-            session_hidden_size=50, session_input_size=50, model_name='SMN_last3.bin'):  # for optimization
+            n_epochs=5, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100, block_size=50,
+            session_hidden_size=50, session_input_size=50, model_name='SMN/data/model_4.pkl', result_file='SMN/data/result_4.txt'):  # for optimization
     """
     return: a list of dicts of lists, each list contains (ansId, groundTruth, prediction) for a question
     """
@@ -176,25 +179,18 @@ def predict(datasets,
     params += [Words]
 
     load_params(params, model_name)
-    print(params)
 
     predict = classifier.predict_prob
 
     val_model = theano.function(
         [index], [y, predict, cost, error], givens=val_dic, on_unused_input='ignore')
-    f = open('result.txt', 'w')
-    loss = 0.
-    for minibatch_index in range(int(datasets[1].shape[0] / batch_size)):
-        a, b, c, d = val_model(minibatch_index)
-        print(c)
-        loss += c
-        for i in range(batch_size):
-            f.write(str(b[i][1]))
-            f.write('\n')
-            # f.write(str(a[i]))
-            # f.write('\n')
-            # print(b[i][1], a[i], c[i], d[i])
-    print(loss / (datasets[1].shape[0] / batch_size))
+    with open(result_file, 'w') as f:
+        loss = 0.
+        for minibatch_index in range(int(datasets[1].shape[0] / batch_size)):
+            a, b, c, d = val_model(minibatch_index)
+            loss += c
+            f.write(str(list(b[:, 1]))[1:-1].replace(', ', '\n') + '\n')
+        print(loss / (datasets[1].shape[0] / batch_size))
 
 
 def load_params(params, filename):
@@ -207,8 +203,8 @@ def load_params(params, filename):
 
 def train(datasets,
           U,  # pre-trained word embeddings
-          n_epochs=5, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100,
-          session_hidden_size=50, session_input_size=50, model_name='SMN_last3.bin'):
+          n_epochs=3, batch_size=20, max_l=100, hidden_size=100, word_embedding_size=100,
+          session_hidden_size=50, session_input_size=50, model_name='SMN/data/model_11', exicted_model=None):
     hiddensize = hidden_size
     U = U.astype(dtype=floatX)
     rng = np.random.RandomState(3435)
@@ -307,8 +303,6 @@ def train(datasets,
     poolingoutput = []
     test = theano.function([index], pooling_layer(llayer0_input[-4], rlayer0_input,
                                                   q_embedding[i], r_embedding), givens=val_dic, on_unused_input='ignore')
-    # print(test(0).shape)
-    # print(test(0))
 
     for i in range(max_turn):
         poolingoutput.append(pooling_layer(llayer0_input[i], rlayer0_input,
@@ -327,9 +321,12 @@ def train(datasets,
     params += session2vec.params
     params += pooling_layer.params
     params += [Words]
+
+    if exicted_model != None:
+        load_params(params, exicted_model)
+
     grad_updates = opt.Adam(cost=cost, params=params,
                             lr=0.001)  # opt.sgd_updates_adadelta(params, cost, lr_decay, 1e-8, sqr_norm_lim)
-    # print(index.type())
     train_model = theano.function(
         [index], cost, updates=grad_updates, givens=dic, on_unused_input='ignore')
     val_model = theano.function(
@@ -362,7 +359,10 @@ def train(datasets,
         errors /= j
         if cost < best_dev:
             best_dev = cost
-            save_params(params, model_name)
+        temp_model_name = model_name + str(i) + '.pkl'
+        save_params(params, temp_model_name)
+        correct = test_model(model_name=temp_model_name)
+        print("echo %d dev_correct %f" % (i, float(correct)))
         print("echo %d dev_loss %f" % (i, cost))
         print("echo %d dev_accuracy %f" % (i, 1 - errors))
 
@@ -387,31 +387,36 @@ def get_session_mask(sents):
     return session_mask
 
 
-def make_data_train(revs, word_idx_map, max_l=50, validation_num=50000, block_size=100000):
+trains, vals = [], []
+
+
+def make_data_train(revs, word_idx_map, max_l=50, validation_num=50000, block_size=200000):
     """
     Transforms sentences into a 2-d matrix.
     """
     version = begin_time()
-    train, val, test, threadings = [], [], [], []
+    test = []
+    threadings = queue.Queue()
+    waitthreadings = queue.Queue()
     num = len(revs)
     start = 0
     end = min(block_size, num - 1)
     for block in range(int(num / block_size) + 1):
         work = threading.Thread(target=make_data_theading, args=(
             revs, word_idx_map, max_l, validation_num, start, end,))
-        threadings.append(work)
+        threadings.put(work)
         start = end + 1
-        end = min(num - 1, block_size * (block + 1))
-    for work in threadings:
-        work.start()
-    for work in threadings:
-        work.join()
-        temptrain, tempval = work.get_result()
-        train.append(temptrain)
-        val.append(tempval)
+        end = min(num - 1, block_size * (block + 2))
+    while not threadings.empty():
+        tempwork = threadings.get()
+        tempwork.start()
+        waitthreadings.put(tempwork)
+    while not waitthreadings.empty():
+        waitthreadings.get().join()
 
-    train = list(flatten(train))
-    val = list(flatten(val))
+    global trains, vals
+    train = sum(trains, [])
+    val = sum(vals, [])
     train = np.array(train, dtype="int")
     val = np.array(val, dtype="int")
     test = np.array(test, dtype="int")
@@ -433,24 +438,27 @@ def make_data_theading(revs, word_idx_map, max_l, validation_num, start, end):
         sent += get_idx_from_sent(rev["r"], word_idx_map, max_l, True)
         sent += get_session_mask(rev["m"])
         sent.append(int(rev["y"]))
-        if index > validation_num:
+        if index >= validation_num:
             temptrain.append(sent)
         else:
             tempval.append(sent)
-    return temptrain, tempval
+    global trains, vals
+    trains.append(temptrain)
+    vals.append(tempval)
 
 
-def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], validation_num=100000):
+def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], validation_num=500000):
     """
     Transforms sentences into a 2-d matrix.
     """
+    version = begin_time()
     train, val, test = [], [], []
     for rev in revs:
         sent = get_idx_from_sent_msg(rev["m"], word_idx_map, max_l, True)
         sent += get_idx_from_sent(rev["r"], word_idx_map, max_l, True)
         sent += get_session_mask(rev["m"])
         sent.append(int(rev["y"]))
-        if len(val) > validation_num:
+        if len(val) >= validation_num:
             train.append(sent)
         else:
             val.append(sent)
@@ -463,20 +471,55 @@ def make_data(revs, word_idx_map, max_l=50, filter_h=3, val_test_splits=[2, 3], 
     return [train, val, test]
 
 
-if __name__ == "__main__":
+def dump_test_make(pre_file='SMN/data/smn_test.pkl', result_file='SMN/data/result_test.txt', max_word_per_utterence=50, output_file='SMN/data/datasets_test.pkl'):
+    """
+    dump test make file
+    """
     version = begin_time()
-    train_flag = False
-    max_word_per_utterence = 50
-    x = pickle.load(open("smn_data_result.test", "rb"))
-    revs, wordvecs, max_l2 = x[0], x[1], x[2]
-
+    pre = pickle.load(open(pre_file, "rb"))
+    revs, wordvecs, max_l2 = pre[0], pre[1], pre[2]
     datasets = make_data(revs, wordvecs.word_idx_map,
                          max_l=max_word_per_utterence)
+    dump_bigger(datasets, output_file)
+    end_time(version)
 
-    if train_flag == True:
+
+def test_model(dataset_file='SMN/data/datasets_test11.pkl', pre_file='SMN/data/smn_test11.pkl', model_name='SMN/data/model.bin', result_file='SMN/data/result_test11.txt'):
+    """
+    test model return accuracy
+    """
+    version = begin_time()
+    datasets = load_bigger(dataset_file)
+    pre = pickle.load(open(pre_file, "rb"))
+    wordvecs = pre[1]
+    predict(datasets, wordvecs.W, batch_size=200, max_l=50, hidden_size=200,
+            word_embedding_size=200, model_name=model_name, result_file=result_file)
+    sampleConduct = SampleConduct()
+    end_time(version)
+    return sampleConduct.calculate_test(result_file)
+
+
+def run_model(pre_file, types, model_name='SMN/data/model_little0.pkl', max_word_per_utterence=50, validation_num=500000, result_file='SMN/data/20result1.txt', exicted_model=None):
+    """
+    run model for train or predict
+    @params: types 0-train, 1-predict
+    """
+    version = begin_time()
+
+    pre = pickle.load(open(pre_file, "rb"))
+    revs, wordvecs, max_l2 = pre[0], pre[1], pre[2]
+
+    datasets = make_data(revs, wordvecs.word_idx_map,
+                         max_l=max_word_per_utterence, validation_num=validation_num)
+
+    if not types:
         train(datasets, wordvecs.W, batch_size=200,
-              max_l=max_word_per_utterence, hidden_size=200, word_embedding_size=200)
+              max_l=max_word_per_utterence, hidden_size=200, word_embedding_size=200, exicted_model=exicted_model)
     else:
         predict(datasets, wordvecs.W, batch_size=200,
-                max_l=max_word_per_utterence, hidden_size=200, word_embedding_size=200)
+                max_l=max_word_per_utterence, hidden_size=200, word_embedding_size=200, model_name=model_name, result_file=result_file)
     end_time(version)
+
+
+if __name__ == "__main__":
+    SMN = 'a fantastic model'

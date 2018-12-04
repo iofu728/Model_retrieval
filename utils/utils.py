@@ -3,10 +3,12 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-25 09:55:43
+# @Last Modified time: 2018-11-29 16:01:20
 
 import collections
 import numpy as np
+import pickle
+import os
 import time
 import theano
 import theano.tensor as T
@@ -144,6 +146,13 @@ def unifom_weight(size, scale=0.1):
     return np.random.uniform(size=size, low=-scale, high=scale).astype(floatX)
 
 
+def unifom_vector(ppap):
+    """
+    unifom verctor
+    """
+    return np.array(ppap) / np.linalg.norm(ppap, ord=2)
+
+
 def gloroat_uniform(size):
     fan_in, fan_out = size
     s = np.sqrt(6. / (fan_in + fan_out))
@@ -159,3 +168,27 @@ def flatten(lst):
             yield from flatten(item)
         else:
             yield item
+
+
+def dump_bigger(data, output_file):
+    """
+    pickle.dump big file which size more than 4GB
+    """
+    max_bytes = 2**31 - 1
+    bytes_out = pickle.dumps(data, protocol=4)
+    with open(output_file, 'wb') as f_out:
+        for idx in range(0, len(bytes_out), max_bytes):
+            f_out.write(bytes_out[idx:idx + max_bytes])
+
+
+def load_bigger(input_file):
+    """
+    pickle.load big file which size more than 4GB
+    """
+    max_bytes = 2**31 - 1
+    bytes_in = bytearray(0)
+    input_size = os.path.getsize(input_file)
+    with open(input_file, 'rb') as f_in:
+        for _ in range(0, input_size, max_bytes):
+            bytes_in += f_in.read(max_bytes)
+    return pickle.loads(bytes_in)

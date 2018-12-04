@@ -2,16 +2,20 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-25 12:15:55
+# @Last Modified time: 2018-12-04 00:04:50
 
 import codecs
+import logging
 import numpy as np
 import pickle
+import queue
 import random
 import threading
 
 
-from utils.utils import begin_time, end_time, flatten
+from utils.utils import begin_time, end_time, flatten, spend_time, load_bigger, unifom_vector
+
+logger = logging.getLogger('relevance_logger')
 
 
 class SampleConduct(object):
@@ -21,14 +25,19 @@ class SampleConduct(object):
     """
 
     def __init__(self):
-        self.content = []
-        self.response = []
-        self.pre = []
+        self.content = {}
+        self.response = {}
+        self.pre = {}
         self.origin_sample = []
+        self.test = []
+        self.word2vec = []
+        self.wordresult = {}
+        self.dev = []
+        self.train = []
 
-    def origin_sample_master(self, input_file, output_file, block_size=100000):
+    def origin_sample_master(self, input_file, output1_file, output2_file, block_size=100000, valnum=10000):
         """
-        get origin sample master for mult-Theading
+        the master of mult-Theading for get origin sample
         """
         version = begin_time()
         with codecs.open(input_file, 'r', 'utf-8') as f:
@@ -41,7 +50,7 @@ class SampleConduct(object):
             while self.origin_sample[end] != '\r\n' and end < num - 1:
                 end += 1
             work = threading.Thread(
-                target=self.origin_sample_agent, args=(start, end,))
+                target=self.origin_sample_agent, args=(start, end, block,))
             threadings.append(work)
             start = end + 1
             end = min(num - 1, block_size * (block + 1))
@@ -49,16 +58,76 @@ class SampleConduct(object):
             work.start()
         for work in threadings:
             work.join()
-        self.content = list(flatten(self.content))
-        self.response = list(flatten(self.response))
-        self.pre = list(flatten(self.pre))
-        pickle.dump([self.content, self.response, self.pre],
-                    open(output_file, "wb"))
+        content = [self.content[k] for k in sorted(self.content.keys())]
+        self.content = sum(content, [])
+        response = [self.response[k] for k in sorted(self.response.keys())]
+        self.response = sum(response, [])
+        # pre = [self.pre[k] for k in sorted(self.pre.keys())]
+        # self.pre = sum(pre, [])
+        totalnum = len(self.response)
+        for index in range(len(self.content)):
+            context = self.content[index]
+            if index <= valnum:
+                self.dev.append("1#" + context + self.response[index])
+            else:
+                self.train.append("1#" + context + self.response[index])
+            otherindexs = np.random.randint(0, totalnum, 2)
+            for otherindex in otherindexs:
+                while otherindex == index:
+                    otherindex = np.random.randint(0, totalnum, 1)[0]
+                if index <= valnum:
+                    self.dev.append("0#" + context + self.response[otherindex])
+                else:
+                    self.train.append(
+                        "0#" + context + self.response[otherindex])
+        pickle.dump(self.train, open(output1_file, "wb"))
+        pickle.dump(self.dev, open(output2_file, "wb"))
         end_time(version)
 
-    def origin_sample_agent(self, start, end):
+    def origin_test_master(self, input_file, output_file, block_size=100000, test_size=2000):
         """
-        origin sample agent for theadings
+        the master of mult-Theading for get origin sample
+        """
+        version = begin_time()
+        with codecs.open(input_file, 'r', 'utf-8') as f:
+            self.origin_sample = f.readlines()
+        threadings = []
+        num = len(self.origin_sample)
+        start = 0
+        end = min(block_size, num - 1)
+        for block in range(int(num / block_size) + 1):
+            while self.origin_sample[end] != '\r\n' and end < num - 1:
+                end += 1
+            work = threading.Thread(
+                target=self.origin_sample_agent, args=(start, end, block, ))
+            threadings.append(work)
+            start = end + 1
+            end = min(num - 1, block_size * (block + 1))
+        for work in threadings:
+            work.start()
+        for work in threadings:
+            work.join()
+        content = [self.content[k] for k in sorted(self.content.keys())]
+        self.content = sum(content, [])
+        response = [self.response[k] for k in sorted(self.response.keys())]
+        self.response = sum(response, [])
+        totalnum = len(self.content)
+        randomlists = np.random.randint(0, totalnum, test_size)
+        for index in randomlists:
+            temp_context = self.content[index]
+            self.test.append("1#" + temp_context + self.response[index])
+            otherindexs = np.random.randint(0, totalnum, 9)
+            for otherindex in otherindexs:
+                while otherindex == index:
+                    otherindex = np.random.randint(0, totalnum, 1)[0]
+                self.test.append("0#" + temp_context +
+                                 self.response[otherindex])
+        pickle.dump(self.test, open(output_file, 'wb'))
+        end_time(version)
+
+    def origin_sample_agent(self, start, end, block):
+        """
+        the agent of mult-Theading for get origin sample
         """
 
         temp_context = ''
@@ -66,25 +135,23 @@ class SampleConduct(object):
         content = []
         response = []
         pre = []
+        num = 0
         for index in range(start, end):
             tempword = self.origin_sample[index]
             if tempword == '\r\n':
+                num += 1
                 content.append(temp_context)
                 response.append(last_index)
-                pre.append("1#" + temp_context + last_index + '\n')
-                aa = random.randint(0, len(response) - 1)
-                pre.append("0#" + temp_context + response[aa] + '\n')
-                aaa = random.randint(0, len(response) - 1)
-                pre.append("0#" + temp_context + response[aaa] + '\n')
+                # pre.append("1#" + temp_context + last_index)
                 temp_context = ''
                 last_index = ''
             else:
                 if len(last_index):
                     temp_context += (last_index + '#')
                 last_index = tempword[:-1].strip()
-        self.content.append(content)
-        self.response.append(response)
-        self.pre.append(pre)
+        self.content[block] = content
+        self.response[block] = response
+        # self.pre[block] = pre
 
     def origin_sample_direct(self, input_file, output_file):
         """
@@ -102,13 +169,13 @@ class SampleConduct(object):
                 if tempword == '\r\n':
                     content.append(temp_context)
                     response.append(last_index)
-                    pre.append("1#" + temp_context + last_index + '\n')
+                    pre.append("1#" + temp_context + last_index)
                     temp_context = ''
                 else:
                     if len(last_index):
                         temp_context += (last_index + '#')
                     last_index = tempword[:-1].strip()
-            pickle.dump([content, response, pre], open(output_file, "wb"))
+            pickle.dump(pre, open(output_file, "wb"))
         end_time(version)
 
     def origin_result_direct(self, input_file1, input_file2, output_file):
@@ -168,6 +235,112 @@ class SampleConduct(object):
                     temp_index = np.array(pre).argmax()
                     outf.write(str(temp_index) + '\n')
         end_time(version)
+
+    def calculate_test(self, input_file, block_size=10):
+        """
+        calculate result
+        """
+        version = begin_time()
+        with codecs.open(input_file, 'r', 'utf-8') as f:
+            results = f.readlines()
+            totalnum = int(len(results))
+            correctnum = 0
+            top3num = 0
+            for index in range(int(totalnum / block_size)):
+                pre = results[index * block_size:(index + 1) * block_size]
+                temp_index = np.array(pre).argmax()
+                top3 = np.array(pre).argsort()[-3:][::-1]
+                if not temp_index:
+                    correctnum += 1
+                if 0 in top3:
+                    top3num += 1
+            print(correctnum, top3num, int(totalnum / block_size), spend_time(version), str(
+                correctnum / int(totalnum / block_size))[:5], str(top3num / int(totalnum / block_size))[:5])
+            return str(correctnum / int(totalnum / block_size))[:5]
+
+    def embedding_test_master(self, input_file, embedding_file, block_size=10000):
+        """
+        the master of mult-Theading for test by embedding model
+        """
+        version = begin_time()
+        self.word2vec = load_bigger(embedding_file)
+        self.origin_sample = load_bigger(input_file)
+        threadings = queue.Queue()
+        waitthreadings = queue.Queue()
+        num = len(self.origin_sample)
+        start = 0
+        end = min(block_size, num - 1)
+        for block in range(int(num / block_size) + 1):
+            work = threading.Thread(
+                target=self.embedding_test_agent, args=(start, end, block,))
+            threadings.put(work)
+            start = end + 1
+            end = min(num - 1, block_size * (block + 2))
+        while not threadings.empty():
+            tempwork = threadings.get()
+            tempwork.start()
+            waitthreadings.put(tempwork)
+        while not waitthreadings.empty():
+            waitthreadings.get().join()
+
+        result = [self.wordresult[k] for k in sorted(self.wordresult.keys())]
+        results = sum(result, [])
+        totalnum = int(len(results))
+        correctnum = 0
+        top3num = 0
+        block_sizes = 10
+        for index in range(int(totalnum / block_sizes)):
+            pre = results[index * block_sizes:(index + 1) * block_sizes]
+            temp_index = np.array(pre).argmax()
+            top3 = np.array(pre).argsort()[-3:][::-1]
+            if not temp_index:
+                correctnum += 1
+            if 0 in top3:
+                top3num += 1
+        print(correctnum, top3num, int(totalnum / block_sizes), spend_time(version), str(
+            correctnum / int(totalnum / block_sizes))[:5], str(top3num / int(totalnum / block_sizes))[:5])
+        end_time(version)
+
+    def embedding_test_agent(self, start, end, block):
+        """
+        the agent of mult-Theading for test by embedding model
+        """
+        result = []
+        origin_sample = self.origin_sample
+        word2vec = self.word2vec
+        for index in range(start, end):
+            tempword = origin_sample[index].replace("\n", "")
+            parts = tempword.strip().split('#')
+            context = np.zeros(200)
+            reply = np.zeros(200)
+            for i in range(1, len(parts) - 1, 1):
+                words = parts[i].split()
+                for word in words:
+                    if word in word2vec:
+                        context += word2vec[word]
+            for word in parts[-1].split():
+                if word in word2vec:
+                    reply += word2vec[word]
+
+            result.append(np.dot(
+                context, reply) / (np.linalg.norm(context, ord=2) * np.linalg.norm(reply, ord=2)))
+        self.wordresult[block] = result
+
+
+def papp(index):
+    tempword = origin_sample[index]
+    parts = tempword.strip().split('#')
+    context = np.zeros(200)
+    reply = np.zeros(200)
+    for i in range(1, len(parts) - 1, 1):
+        words = parts[i].split()
+        for word in words:
+            if word in word2vec:
+                context += word2vec[word]
+    for word in parts[-1].split():
+        if word in word2vec:
+            reply += word2vec[word]
+    return np.dot(context, reply) / (np.linalg.norm(context, ord=2) * np.linalg.norm(reply, ord=2))
 
 
 class GetWords(object):
