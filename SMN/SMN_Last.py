@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-18 22:08:40
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-02 19:29:24
+# @Last Modified time: 2018-12-04 19:39:27
 
 import pickle
 import numpy as np
@@ -522,4 +522,5 @@ def run_model(pre_file, types, model_name='SMN/data/model_little0.pkl', max_word
 
 
 if __name__ == "__main__":
+
     SMN = 'a fantastic model'
