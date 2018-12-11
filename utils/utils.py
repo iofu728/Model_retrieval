@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-29 16:01:20
+# @Last Modified time: 2018-12-11 20:53:42
 
 import collections
 import numpy as np
@@ -192,3 +192,27 @@ def load_bigger(input_file):
         for _ in range(0, input_size, max_bytes):
             bytes_in += f_in.read(max_bytes)
     return pickle.loads(bytes_in)
+
+
+def intersection_over_union(boxA, boxB):
+    """
+    IOU (Intersection over Union) = Area of overlap / Area of union
+    @param boxA=[x0, y0, x1, y1] (x1 > x0 && y1 > y0) two pointer are diagonal
+    """
+
+    boxA = [int(x) for x in boxA]
+    boxB = [int(x) for x in boxB]
+
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+
+    return iou
