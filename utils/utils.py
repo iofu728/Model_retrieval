@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-11 20:53:42
+# @Last Modified time: 2018-12-17 15:02:51
 
 import collections
 import numpy as np
@@ -216,3 +216,15 @@ def intersection_over_union(boxA, boxB):
     iou = interArea / float(boxAArea + boxBArea - interArea)
 
     return iou
+
+def quicksort(arr):
+    """
+    qucik sort by py
+    """
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)
