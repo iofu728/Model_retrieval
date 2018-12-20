@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-04 00:04:50
+# @Last Modified time: 2018-12-20 11:17:15
 
 import codecs
 import logging
@@ -13,7 +13,7 @@ import random
 import threading
 
 
-from utils.utils import begin_time, end_time, flatten, spend_time, load_bigger, unifom_vector
+from utils.utils import begin_time, end_time, flatten, spend_time, load_bigger, unifom_vector, unique_randomint
 
 logger = logging.getLogger('relevance_logger')
 
@@ -84,6 +84,111 @@ class SampleConduct(object):
         pickle.dump(self.dev, open(output2_file, "wb"))
         end_time(version)
 
+    def onetime_master(self, input_file, output_file, block_size=900000, test_size=2000):
+        """
+        by numpy
+        """
+        version = begin_time()
+        with codecs.open(input_file, 'r', 'utf-8') as f:
+            self.origin_sample = f.readlines()
+        threadings = []
+        num = 0
+        for index, line in enumerate(self.origin_sample):
+            num += 1
+        start = 0
+        end = min(block_size, num - 1)
+        block_num = int(num / block_size) + 1
+        print('Thread Begin. ', num)
+        for block in range(block_num):
+            while self.origin_sample[end] != '\r\n' and end < num - 1:
+                end += 1
+            work = threading.Thread(
+                target=self.origin_sample_agent, args=(start, end, block,))
+            threadings.append(work)
+            start = end + 1
+            end = min(num - 1, block_size * (block + 1))
+        print('point 1')
+        for work in threadings:
+            work.start()
+        for work in threadings:
+            work.join()
+        print('Thread Over.')
+        return self.content, self.response
+        content = np.hstack(np.array(list(self.content.values())))
+        totalnum = len(content)
+        print(totalnum)
+        randomIndexs = unique_randomint(0, totalnum, test_size)
+        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
+        pre_content = content[otherIndexs]
+        test_content = content[randomIndexs]
+        del content
+        gc.collect()
+        response = np.hstack(np.array(list(self.response.values())))
+        test_response = [response[index] + '\n' + list2str(
+            response[unique_randomint(0, totalnum, 9, [index])]) + '\n' for index in randomIndexs]
+        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
+
+        pre_response = response[otherIndexs]
+        max_dtype = max(pre_content.dtype, pre_response.dtype)
+        pre_next = pre_content.astype(
+            max_dtype) + pre_response.astype(max_dtype)
+        with open(output_file + 'seq_replies.txt', 'wb') as f:
+            f.write(list2str(test_response))
+        with open(output_file + 'seq_context.txt', 'wb') as f:
+            f.write(list2str(test_content))
+        with open(output_file + 'train.txt', 'wb') as f:
+            f.write(list2str(pre_next))
+        end_time(version)
+
+    def twotime_master(self, input_file, output_file, block_size=900000, test_size=2000):
+        """
+        by not using numpy
+        """
+        version = begin_time()
+        with codecs.open(input_file, 'r', 'utf-8') as f:
+            self.origin_sample = f.readlines()
+        threadings = []
+        num = 0
+        for index, line in enumerate(self.origin_sample):
+            num += 1
+        start = 0
+        end = min(block_size, num - 1)
+        block_num = int(num / block_size) + 1
+        print('Thread Begin. ', num)
+        for block in range(block_num):
+            while self.origin_sample[end] != '\r\n' and end < num - 1:
+                end += 1
+            work = threading.Thread(
+                target=self.origin_sample_agent, args=(start, end, block,))
+            threadings.append(work)
+            start = end + 1
+            end = min(num - 1, block_size * (block + 1))
+        print('point 1')
+        for work in threadings:
+            work.start()
+        for work in threadings:
+            work.join()
+        print('Thread Over.')
+        content = sum(list(self.content.values()), [])
+        response = sum(list(self.response.values()), [])
+        totalnum = len(content)
+        print(totalnum)
+        randomIndexs = unique_randomint(0, totalnum, test_size)
+        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
+        pre_next = [content[index] + response[index] for index in otherIndexs]
+        test_content = [content[index] for index in randomIndexs]
+
+        test_response = [response[index] + list2str([response[indexs].replace('\n', '') for indexs in unique_randomint(
+            0, totalnum, 9, [index])]) + '\n' for index in randomIndexs]
+
+        with open(output_file + 'seq_replies.txt', 'w') as f:
+            f.write(list2str(test_response))
+        with open(output_file + 'seq_context.txt', 'w') as f:
+            f.write(list2str(test_content))
+        with open(output_file + 'train.txt', 'w') as f:
+            f.write(list2str(pre_next))
+        end_time(version)
+
     def origin_test_master(self, input_file, output_file, block_size=100000, test_size=2000):
         """
         the master of mult-Theading for get origin sample
@@ -142,13 +247,13 @@ class SampleConduct(object):
                 num += 1
                 content.append(temp_context)
                 response.append(last_index)
-                # pre.append("1#" + temp_context + last_index)
+                # pre.append(temp_context + last_index)
                 temp_context = ''
                 last_index = ''
             else:
                 if len(last_index):
-                    temp_context += (last_index + '#')
-                last_index = tempword[:-1].strip()
+                    temp_context += last_index
+                last_index = tempword[:-1].strip() + '\n'
         self.content[block] = content
         self.response[block] = response
         # self.pre[block] = pre
@@ -356,6 +461,13 @@ class GetWords(object):
             wordLists = f.readlines()
             for index in wordLists:
                 yield index.split()
+
+
+def list2str(lists):
+    """
+    list to str
+    """
+    return str(list(lists)).replace('\'', '').replace('\\n', '\n').replace(', ', '\n')[1:-1]
 
 
 def preWord2vec(input_file, output_file):

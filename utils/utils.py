@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-17 15:02:51
+# @Last Modified time: 2018-12-19 19:11:31
 
 import collections
 import numpy as np
@@ -217,6 +217,7 @@ def intersection_over_union(boxA, boxB):
 
     return iou
 
+
 def quicksort(arr):
     """
     qucik sort by py
@@ -228,3 +229,43 @@ def quicksort(arr):
     middle = [x for x in arr if x == pivot]
     right = [x for x in arr if x > pivot]
     return quicksort(left) + middle + quicksort(right)
+
+
+def cartesian(arrays):
+    """
+    cartesian product
+    """
+    arrays = [np.asarray(a) for a in arrays]
+    shape = (len(x) for x in arrays)
+
+    ix = np.indices(shape, dtype=int)
+    ix = ix.reshape(len(arrays), -1).T
+
+    for n, arr in enumerate(arrays):
+        ix[:, n] = arrays[n][ix[:, n]]
+
+    return ix
+
+
+def unique_randomint(begin_num, end_num, random_size, except_lists=None):
+    """
+    unique randomint by numpy
+    """
+    except_lists_len = 0
+    if except_lists is not None:
+        except_lists = np.array(except_lists)
+        temp = except_lists[except_lists < end_num]
+        except_lists_len = len(temp[temp >= begin_num])
+    randomIndexs = []
+    nowIndexLen = 0
+    if end_num - begin_num - except_lists_len < random_size:
+        print("random_size is less than real size. Please check the size of np.darray.")
+        return randomIndexs
+    while nowIndexLen < random_size:
+        randomIndexs = np.unique(np.r_[np.random.randint(
+            begin_num, end_num, random_size - nowIndexLen), randomIndexs])
+        if except_lists is not None:
+            randomIndexs = np.setdiff1d(
+                randomIndexs, except_lists, assume_unique=True)
+        nowIndexLen = len(randomIndexs)
+    return randomIndexs.astype(dtype=int)
