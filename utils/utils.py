@@ -3,7 +3,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-13 16:14:18
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-11-29 16:01:20
+# @Last Modified time: 2018-12-19 19:11:31
 
 import collections
 import numpy as np
@@ -192,3 +192,80 @@ def load_bigger(input_file):
         for _ in range(0, input_size, max_bytes):
             bytes_in += f_in.read(max_bytes)
     return pickle.loads(bytes_in)
+
+
+def intersection_over_union(boxA, boxB):
+    """
+    IOU (Intersection over Union) = Area of overlap / Area of union
+    @param boxA=[x0, y0, x1, y1] (x1 > x0 && y1 > y0) two pointer are diagonal
+    """
+
+    boxA = [int(x) for x in boxA]
+    boxB = [int(x) for x in boxB]
+
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+
+    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+    boxBArea = (boxB[2] - boxB[0] + 1) * (boxB[3] - boxB[1] + 1)
+
+    iou = interArea / float(boxAArea + boxBArea - interArea)
+
+    return iou
+
+
+def quicksort(arr):
+    """
+    qucik sort by py
+    """
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)
+
+
+def cartesian(arrays):
+    """
+    cartesian product
+    """
+    arrays = [np.asarray(a) for a in arrays]
+    shape = (len(x) for x in arrays)
+
+    ix = np.indices(shape, dtype=int)
+    ix = ix.reshape(len(arrays), -1).T
+
+    for n, arr in enumerate(arrays):
+        ix[:, n] = arrays[n][ix[:, n]]
+
+    return ix
+
+
+def unique_randomint(begin_num, end_num, random_size, except_lists=None):
+    """
+    unique randomint by numpy
+    """
+    except_lists_len = 0
+    if except_lists is not None:
+        except_lists = np.array(except_lists)
+        temp = except_lists[except_lists < end_num]
+        except_lists_len = len(temp[temp >= begin_num])
+    randomIndexs = []
+    nowIndexLen = 0
+    if end_num - begin_num - except_lists_len < random_size:
+        print("random_size is less than real size. Please check the size of np.darray.")
+        return randomIndexs
+    while nowIndexLen < random_size:
+        randomIndexs = np.unique(np.r_[np.random.randint(
+            begin_num, end_num, random_size - nowIndexLen), randomIndexs])
+        if except_lists is not None:
+            randomIndexs = np.setdiff1d(
+                randomIndexs, except_lists, assume_unique=True)
+        nowIndexLen = len(randomIndexs)
+    return randomIndexs.astype(dtype=int)

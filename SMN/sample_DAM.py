@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # @Author: gunjianpan
-# @Date:   2018-11-20 16:20:41
+# @Date:   2018-12-23 10:54:27
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-23 16:39:17
+# @Last Modified time: 2018-12-24 23:54:46
 
 import codecs
 import logging
@@ -17,6 +17,19 @@ from utils.utils import begin_time, end_time, flatten, spend_time, load_bigger, 
 
 logger = logging.getLogger('relevance_logger')
 
+def LCS(long_word):
+    """
+    deal with very long repeat word
+    """
+    long_word = long_word.replace('丷','')
+    if len(long_word) < 4:
+        return long_word
+    begin_num =1
+    for index in range(1, len(long_word) - 1):
+        if long_word[:index] == long_word[index:2*index]:
+            return long_word[:index]
+    return long_word[:10]
+
 
 class SampleConduct(object):
     """
@@ -25,6 +38,7 @@ class SampleConduct(object):
     """
 
     def __init__(self):
+        self.word_map = {}
         self.content = {}
         self.response = {}
         self.pre = {}
@@ -34,14 +48,65 @@ class SampleConduct(object):
         self.wordresult = {}
         self.dev = []
         self.train = []
+        self.word2id = {}
+        self.embedding = []
 
-    def origin_sample_master(self, input_file, output1_file, output2_file, block_size=100000, valnum=10000):
+    def word2ids(self, input_file, embedding_file, output1_file='SMN/data/weibo/word2id.pkl', output2_file='SMN/data/weibo/word_embedding.pkl', output3_file='SMN/data/weibo/word2id'):
+        """
+        word 2 id
+        """
+        version = begin_time()
+        with codecs.open(input_file, 'r', 'utf-8') as f:
+            origin_sample = f.readlines()
+        word_embedding = load_bigger(embedding_file)
+        words = set()
+        word_map = {}
+        embedding_lists = []
+
+        word_map['_OOV_'] = 0
+        word_map['_EOS_'] = 1
+        embedding_lists.append([0] * 200)
+        embedding_lists.append([0] * 200)
+        for index in origin_sample:
+            if index == '\r\n':
+                continue
+            words.update(set(index.replace('\r\n', '').split()))
+        with open(output3_file, 'w') as f:
+            f.write('_OOV_ 0\n')
+            f.write('_EOS_ 1\n')
+            index_num = 2
+            for idx, index in enumerate(words):
+                index = LCS(index)
+                if index not in word_map:
+                    word_map[index] = index_num
+                    f.write(index + ' ' + str(word_map[index]) + '\n')
+                    index_num += 1
+                if index in word_embedding:
+                    embedding_lists.append(list(np.around(word_embedding[index],6)))
+                # elif index[:3] in word_embedding:
+                #     embedding_lists.append(list(np.around(word_embedding[index[:3]],6)))
+                # elif index[:2] in word_embedding:
+                #     embedding_lists.append(list(np.around(word_embedding[index[:2]],6)))
+                # elif index[:1] in word_embedding:
+                #     embedding_lists.append(list(np.around(word_embedding[index[:1]],6)))
+                else:
+                    embedding_lists.append([0] * 200)
+        # return embedding_lists, word_map
+        pickle.dump(embedding_lists, open(output2_file, "wb"))
+        pickle.dump(word_map, open(output1_file, "wb"))
+        end_time(version)
+
+
+    def origin_sample_master(self, input_file, output_file='SMN/data/weibo/train_data_small.pkl', word2id_file='SMN/data/weibo/word2id.pkl', embedding_file='SMN/data/weibo/word_embedding.pkl', block_size=900000, small_size=100000):
         """
         the master of mult-Theading for get origin sample
         """
         version = begin_time()
         with codecs.open(input_file, 'r', 'utf-8') as f:
             self.origin_sample = f.readlines()
+        self.word2id = pickle.load(open(word2id_file, 'rb'))
+        # self.embedding = pickle.load(open(embedding_file, 'rb'))
+
         threadings = []
         num = len(self.origin_sample)
         start = 0
@@ -58,151 +123,26 @@ class SampleConduct(object):
             work.start()
         for work in threadings:
             work.join()
-        content = [self.content[k] for k in sorted(self.content.keys())]
-        self.content = sum(content, [])
-        response = [self.response[k] for k in sorted(self.response.keys())]
-        self.response = sum(response, [])
-        # pre = [self.pre[k] for k in sorted(self.pre.keys())]
-        # self.pre = sum(pre, [])
-        totalnum = len(self.response)
-        for index in range(len(self.content)):
-            context = self.content[index]
-            if index <= valnum:
-                self.dev.append("1#" + context + self.response[index])
-            else:
-                self.train.append("1#" + context + self.response[index])
-            otherindexs = np.random.randint(0, totalnum, 2)
-            for otherindex in otherindexs:
-                while otherindex == index:
-                    otherindex = np.random.randint(0, totalnum, 1)[0]
-                if index <= valnum:
-                    self.dev.append("0#" + context + self.response[otherindex])
-                else:
-                    self.train.append(
-                        "0#" + context + self.response[otherindex])
-        pickle.dump(self.train, open(output1_file, "wb"))
-        pickle.dump(self.dev, open(output2_file, "wb"))
-        end_time(version)
-
-    def onetime_master(self, input_file, output_file, block_size=900000, test_size=2000):
-        """
-        by numpy
-        """
-        version = begin_time()
-        with codecs.open(input_file, 'r', 'utf-8') as f:
-            self.origin_sample = f.readlines()
-        threadings = []
-        num = 0
-        for index, line in enumerate(self.origin_sample):
-            num += 1
-        start = 0
-        end = min(block_size, num - 1)
-        block_num = int(num / block_size) + 1
-        print('Thread Begin. ', num)
-        for block in range(block_num):
-            while self.origin_sample[end] != '\r\n' and end < num - 1:
-                end += 1
-            work = threading.Thread(
-                target=self.origin_sample_agent, args=(start, end, block,))
-            threadings.append(work)
-            start = end + 1
-            end = min(num - 1, block_size * (block + 1))
-        print('point 1')
-        for work in threadings:
-            work.start()
-        for work in threadings:
-            work.join()
-        print('Thread Over.')
-        return self.content, self.response
-        content = np.hstack(np.array(list(self.content.values())))
-        totalnum = len(content)
-        print(totalnum)
-        randomIndexs = unique_randomint(0, totalnum, test_size)
-        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
-        pre_content = content[otherIndexs]
-        test_content = content[randomIndexs]
-        del content
-        gc.collect()
-        response = np.hstack(np.array(list(self.response.values())))
-        test_response = [response[index] + '\n' + list2str(
-            response[unique_randomint(0, totalnum, 9, [index])]) + '\n' for index in randomIndexs]
-        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
-
-        pre_response = response[otherIndexs]
-        max_dtype = max(pre_content.dtype, pre_response.dtype)
-        pre_next = pre_content.astype(
-            max_dtype) + pre_response.astype(max_dtype)
-        with open(output_file + 'seq_replies.txt', 'wb') as f:
-            f.write(list2str(test_response))
-        with open(output_file + 'seq_context.txt', 'wb') as f:
-            f.write(list2str(test_content))
-        with open(output_file + 'train.txt', 'wb') as f:
-            f.write(list2str(pre_next))
-        end_time(version)
-
-    def twotime_master(self, input_file, output_file, block_size=900000, test_size=2000):
-        """
-        by not using numpy
-        """
-        version = begin_time()
-        with codecs.open(input_file, 'r', 'utf-8') as f:
-            self.origin_sample = f.readlines()
-        threadings = []
-        num = 0
-        for index, line in enumerate(self.origin_sample):
-            num += 1
-        start = 0
-        end = min(block_size, num - 1)
-        block_num = int(num / block_size) + 1
-        print('Thread Begin. ', num)
-        for block in range(block_num):
-            while self.origin_sample[end] != '\r\n' and end < num - 1:
-                end += 1
-            work = threading.Thread(
-                target=self.origin_sample_agent, args=(start, end, block,))
-            threadings.append(work)
-            start = end + 1
-            end = min(num - 1, block_size * (block + 1))
-        print('point 1')
-        for work in threadings:
-            work.start()
-        for work in threadings:
-            work.join()
-        print('Thread Over.')
         content = sum(list(self.content.values()), [])
         response = sum(list(self.response.values()), [])
+
         totalnum = len(content)
         print(totalnum)
-        randomIndexs = unique_randomint(0, totalnum, test_size)
-        otherIndexs = np.setdiff1d(np.arange(totalnum), randomIndexs)
-        pre_next = [content[index] + response[index] for index in otherIndexs]
-        print(len(randomIndexs))
-        test_content = []
-        test_content = [content[index] for index in randomIndexs]
-        print(len(test_content))
-        test_response = []
-        with open(output_file + 'seq_replies.txt', 'w') as f:
-            for index in randomIndexs:
-                f.write(response[index].replace(
-                    '\r\n', '').replace('\n', '') + '\n')
-                tempIndexs = unique_randomint(0, totalnum, 9, [index])[0:9]
-                for idx, temp in enumerate(tempIndexs):
-                    if idx == 8:
-                        f.write(
-                            response[temp].replace('\r\n', '').replace('\n', '') + '\n\n')
-                    else:
-                        f.write(response[temp].replace(
-                            '\r\n', '').replace('\n', '') + '\n')
+        return totalnum
+        randomIndexs = unique_randomint(0, totalnum, small_size)
+        y = [1, 0] * small_size
+        c= []
+        r = []
+        for index in randomIndexs:
+            c.append(content[index])
+            c.append(content[index])
+            # c.append(content[index])
+            r.append(response[index])
+            r.append(response[unique_randomint(0, totalnum, 1, [index])[0]])
+            # r.append(response[unique_randomint(0, totalnum, 1, [index])[0]])
 
-        print(len(test_response))
-        print(len(list2str(test_response).split('\n')))
-
-        # with open(output_file + 'seq_replies.txt', 'w') as f:
-        #     f.write(list2str(test_response))
-        with open(output_file + 'seq_context.txt', 'w') as f:
-            f.write(list2str(test_content))
-        with open(output_file + 'train.txt', 'w') as f:
-            f.write(list2str(pre_next))
+        train_data = {'y': y, 'r': r, 'c': c}
+        pickle.dump(train_data, open(output_file, "wb"))
         end_time(version)
 
     def origin_test_master(self, input_file, output_file, block_size=100000, test_size=2000):
@@ -251,52 +191,77 @@ class SampleConduct(object):
         the agent of mult-Theading for get origin sample
         """
 
-        temp_context = ''
-        last_index = ''
+        temp_context = []
+        last_index = []
         content = []
         response = []
-        pre = []
         num = 0
         for index in range(start, end):
             tempword = self.origin_sample[index]
             if tempword == '\r\n':
                 num += 1
-                content.append(temp_context)
-                response.append(last_index)
-                # pre.append(temp_context + last_index)
-                temp_context = ''
-                last_index = ''
+                content.append(temp_context[:-1])
+                response.append(last_index[:-1])
+                temp_context = []
+                last_index = []
             else:
                 if len(last_index):
                     temp_context += last_index
-                last_index = tempword[:-1].strip() + '\n'
+                last_index = tempword[:-1].strip().split()
+                last_index = [self.word2id[index] for index in last_index]
+                last_index.append(1)
         self.content[block] = content
         self.response[block] = response
-        # self.pre[block] = pre
 
-    def origin_sample_direct(self, input_file, output_file):
+    def origin_sample_direct(self, input1_file, input2_file, output_file, small_size=2000, word2id_file='SMN/data/weibo/word2id.pkl'):
         """
         origin sample direct no theading
         """
 
         version = begin_time()
-        with codecs.open(input_file, 'r', 'utf-8') as f:
-            temp_context = ''
-            last_index = ''
-            content = []
-            response = []
-            pre = []
-            for tempword in f:
-                if tempword == '\r\n':
-                    content.append(temp_context)
-                    response.append(last_index)
-                    pre.append("1#" + temp_context + last_index)
-                    temp_context = ''
-                else:
-                    if len(last_index):
-                        temp_context += (last_index + '#')
-                    last_index = tempword[:-1].strip()
-            pickle.dump(pre, open(output_file, "wb"))
+        with codecs.open(input1_file, 'r', 'utf-8') as f:
+            sample1 = f.readlines()
+        with codecs.open(input2_file, 'r', 'utf-8') as f:
+            sample2 = f.readlines()
+        self.word2id = pickle.load(open(word2id_file, 'rb'))
+        temp_context = []
+        last_index = []
+        c = []
+        r = []
+        num = 0
+        for tempword in sample1:
+            if tempword == '\n':
+                num += 1
+                for idx in range(10):
+                    c.append(temp_context + last_index[:-1])
+                temp_context = []
+                last_index = []
+            else:
+                if len(last_index):
+                    temp_context += last_index
+                last_index = tempword[:-1].replace('\"','').replace('\\','').strip().split()
+                if '\"' in last_index:
+                    print(last_index)
+                last_index = [self.word2id[index] for index in last_index if index in self.word2id]
+                last_index.append(1)
+        # for idx in range(10):
+        #     c.append(temp_context + last_index[:-1])
+        num = 0
+        print(len(sample2))
+        for index,tempword in enumerate(sample2):
+            if tempword != '\n':
+                num +=1
+                last_index = tempword[:-1].replace('\"','').replace('\\','').strip().split()
+                last_index = [self.word2id[index] for index in last_index if index in self.word2id]
+                r.append(last_index)
+            else:
+                if num != 10:
+                    print(num,index)
+                num = 0
+        y=[1,0,0,0,0,0,0,0,0,0]*small_size
+        val_data = {'y': y, 'r': r, 'c': c}
+        pickle.dump(val_data, open(output_file, "wb"))
+
         end_time(version)
 
     def origin_result_direct(self, input_file1, input_file2, output_file):
