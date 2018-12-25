@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-12-20 11:27:21
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-22 10:59:46
+# @Last Modified time: 2018-12-23 19:36:00
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -218,14 +218,14 @@ class titanic_lgb(object):
             (self.X_test, self.y_test)], eval_metric='l1', early_stopping_rounds=5)
         self.gbm = gbm
 
-    def evaulate_model(self, model=True, segmentation=0.52, begin_id=892):
+    def evaulate_model(self, model=True, segmentation=0.533, begin_id=892):
         """
         evaulate model by lightgbm
         """
         print('Start predicting...')
         y_pred = self.gbm.predict(
             self.X_test, num_iteration=self.gbm.best_iteration_)
-        # return y_pred
+        return y_pred
         if model:
             min_result = 1
             min_index = 0
@@ -246,6 +246,12 @@ class titanic_lgb(object):
             PassengerId = y_pred.index.map(lambda temp_id: temp_id + begin_id)
             wait = pd.concat([pd.DataFrame(PassengerId), y_pred], axis=1)
             wait.to_csv('titanic/result.csv', index=False)
+
+y_pred = pd.DataFrame(y_pred)[0].map(lambda y: 0 if y < 0.51 or (y > 0.516 and y < 0.517) else 1)
+PassengerId = pd.DataFrame()
+PassengerId = y_pred.index.map(lambda temp_id: temp_id + begin_id)
+wait = pd.concat([pd.DataFrame(PassengerId), y_pred], axis=1)
+wait.to_csv('titanic/result.csv', index=False)
 
     def optimize_model(self):
         """
