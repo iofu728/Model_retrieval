@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-11-20 16:20:41
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-23 16:39:17
+# @Last Modified time: 2018-12-31 12:24:09
 
 import codecs
 import logging
@@ -235,14 +235,15 @@ class SampleConduct(object):
         totalnum = len(self.content)
         randomlists = np.random.randint(0, totalnum, test_size)
         for index in randomlists:
-            temp_context = self.content[index]
-            self.test.append("1#" + temp_context + self.response[index])
+            temp_context = self.content[index][:-
+                                               1].replace('\n', '[SEP]') + '#'
+            self.test.append("1#" + temp_context + self.response[index][:-1])
             otherindexs = np.random.randint(0, totalnum, 9)
             for otherindex in otherindexs:
                 while otherindex == index:
                     otherindex = np.random.randint(0, totalnum, 1)[0]
                 self.test.append("0#" + temp_context +
-                                 self.response[otherindex])
+                                 self.response[otherindex][:-1])
         pickle.dump(self.test, open(output_file, 'wb'))
         end_time(version)
 
