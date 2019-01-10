@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-12-23 10:54:27
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2019-01-01 09:14:38
+# @Last Modified time: 2018-12-30 16:31:34
 
 import codecs
 import logging
@@ -17,27 +17,20 @@ from utils.utils import begin_time, end_time, flatten, spend_time, load_bigger, 
 
 logger = logging.getLogger('relevance_logger')
 
+
 def LCS(long_word):
     """
     deal with very long repeat word
     """
-    long_word = long_word.replace('丷','')
+    long_word = long_word.replace('丷', '')
     if len(long_word) < 4:
         return long_word
-    begin_num =1
+    begin_num = 1
     for index in range(1, len(long_word) - 1):
-        if long_word[:index] == long_word[index:2*index]:
+        if long_word[:index] == long_word[index:2 * index]:
             return long_word[:index]
     return long_word[:10]
 
-def compute_ngrams(word, min_n, max_n):
-    #BOW, EOW = ('<', '>')  # Used by FastText to attach to all words as prefix and suffix
-    extended_word =  word
-    ngrams = []
-    for ngram_length in range(min_n, min(len(extended_word), max_n) + 1):
-        for i in range(0, len(extended_word) - ngram_length + 1):
-            ngrams.append(extended_word[i:i + ngram_length])
-    return list(set(ngrams))
 
 class SampleConduct(object):
     """
@@ -49,6 +42,7 @@ class SampleConduct(object):
         self.word_map = {}
         self.content = {}
         self.response = {}
+        self.r = {}
         self.pre = {}
         self.origin_sample = []
         self.test = []
@@ -59,7 +53,7 @@ class SampleConduct(object):
         self.word2id = {}
         self.embedding = []
 
-    def word2ids(self, input_file, embedding_file, output1_file='SMN/data/weibo/word2id.pkl', output2_file='SMN/data/weibo/word_embedding.pkl', output3_file='SMN/data/weibo/word2id', min_n = 1, max_n = 3):
+    def word2ids(self, input_file, embedding_file, output1_file='SMN/data/weibo/word2id.pkl', output2_file='SMN/data/weibo/word_embedding.pkl', output3_file='SMN/data/weibo/word2id'):
         """
         word 2 id
         """
@@ -81,41 +75,52 @@ class SampleConduct(object):
             words += [LCS(idx) for idx in index.replace('\r\n', '').split()]
             # words.update(set(index.replace('\r\n', '').split()))
         words = Counter(words)
-        words = [index for index in words]
-        word2id = ['_OOV_ 0','_EOS_ 1']
-        word_size = word_embedding.wv.syn0[0].shape[0]
+        words = [index for index in words if words[index] > 2]
+        word2id = ['_OOV_ 0', '_EOS_ 1']
 
         print('Step 2: Begin')
         index_num = 2
         for idx, index in enumerate(words):
-            if index in word_map:
-                continue
-            if index in word_embedding.wv.vocab.keys():
-                word_map[index] = index_num
-                index_num += 1
-                word2id.append(index + ' ' + str(word_map[index]))
-                embedding_lists.append(word_embedding[index].astype('float32'))
-            else:
-                ngrams = compute_ngrams(index, min_n = min_n, max_n = max_n)
-                word_vec = np.zeros(word_size, dtype=np.float32)
-                ngrams_found = 0
-                ngrams_single = [ng for ng in ngrams if len(ng) == 1]
-                ngrams_more = [ng for ng in ngrams if len(ng) > 1]
-                for ngram in ngrams_more:
-                    if ngram in word_embedding.wv.vocab.keys():
-                        word_vec += word_embedding[ngram]
-                        ngrams_found += 1
-                if ngrams_found == 0:
-                    for ngram in ngrams_single:
-                        if ngram in word_embedding.wv.vocab.keys():
-                            word_vec += word_embedding[ngram]
-                            ngrams_found += 1
-                if word_vec.any():
-                    word_vec /= max(1, ngrams_found)
+            if index in word_embedding:
+                if index not in word_map:
                     word_map[index] = index_num
                     index_num += 1
                     word2id.append(index + ' ' + str(word_map[index]))
-                    embedding_lists.append(word_vec)
+                    embedding_lists.append(
+                        list(word_embedding[index].astype('float16')))
+            # elif index[:3] in word_embedding:
+            #     if index[:3] not in word_map:
+            #         word_map[index[:3]] = index_num
+            #         word_map[index] = index_num
+            #         index_num += 1
+            #         word2id.append(index[:3] + ' ' + str(word_map[index[:3]]))
+            #         word2id.append(index + ' ' + str(word_map[index]))
+            #         embedding_lists.append(list(word_embedding[index[:3]].astype('float16')))
+            #     else:
+            #         word_map[index] = word_map[index[:3]]
+            #         word2id.append(index + ' ' + str(word_map[index]))
+            # elif index[:2] in word_embedding:
+            #     if index[:2] not in word_map:
+            #         word_map[index[:2]] = index_num
+            #         word_map[index] = index_num
+            #         index_num += 1
+            #         word2id.append(index[:2] + ' ' + str(word_map[index[:2]]))
+            #         word2id.append(index + ' ' + str(word_map[index]))
+            #         embedding_lists.append(list(word_embedding[index[:2]].astype('float16')))
+            #     else:
+            #         word_map[index] = word_map[index[:2]]
+            #         word2id.append(index + ' ' + str(word_map[index]))
+            # elif index[:1] in word_embedding:
+            #     if index[:1] not in word_map:
+            #         word_map[index[:1]] = index_num
+            #         word_map[index] = index_num
+            #         index_num += 1
+            #         word2id.append(index[:1] + ' ' + str(word_map[index[:1]]))
+            #         word2id.append(index + ' ' + str(word_map[index]))
+            #         embedding_lists.append(list(word_embedding[index[:1]].astype('float16')))
+            #     else:
+            #         word_map[index] = word_map[index[:1]]
+            #         word2id.append(index + ' ' + str(word_map[index]))
         print(index_num)
         with open(output3_file, 'w') as f:
             f.write(list2str(word2id))
@@ -126,16 +131,13 @@ class SampleConduct(object):
         pickle.dump(word_map, open(output1_file, "wb"))
         end_time(version)
 
-
-    def origin_sample_master(self, input_file, output_file='SMN/data/weibo/train_data_small.pkl', word2id_file='SMN/data/weibo/word2id.pkl', embedding_file='SMN/data/weibo/word_embedding.pkl', block_size=900000, small_size=100000):
+    def origin_sample_master(self, input_file, output_file='SMN/data/bert/train.pkl', block_size=900000, small_size=200000):
         """
         the master of mult-Theading for get origin sample
         """
         version = begin_time()
         with codecs.open(input_file, 'r', 'utf-8') as f:
             self.origin_sample = f.readlines()
-        self.word2id = pickle.load(open(word2id_file, 'rb'))
-        # self.embedding = pickle.load(open(embedding_file, 'rb'))
 
         threadings = []
         num = len(self.origin_sample)
@@ -153,26 +155,20 @@ class SampleConduct(object):
             work.start()
         for work in threadings:
             work.join()
-        content = sum(list(self.content.values()), [])
         response = sum(list(self.response.values()), [])
-
-        totalnum = len(content)
+        content = sum(list(self.content.values()), [])
+        totalnum = len(response)
         print(totalnum)
-        # return totalnum
         randomIndexs = unique_randomint(0, totalnum, small_size)
-        y = [1, 0, 0] * small_size
-        c= []
+        # otherIndexs = unique_randomint(
+        #     0, totalnum, small_size * 2, randomIndexs)
         r = []
         for index in randomIndexs:
-            c.append(content[index])
-            c.append(content[index])
-            c.append(content[index])
-            r.append(response[index])
-            r.append(response[unique_randomint(0, totalnum, 1, [index])[0]])
-            r.append(response[unique_randomint(0, totalnum, 1, [index])[0]])
+            r.append('1#' + content[index] + '#' + response[index])
+            r.append('0#' + content[index] + '#' +response[unique_randomint(0, totalnum, 1, [index])[0]])
+            r.append('0#' + content[index] + '#' +response[unique_randomint(0, totalnum, 1, [index])[0]])
 
-        train_data = {'y': y, 'r': r, 'c': c}
-        pickle.dump(train_data, open(output_file, "wb"))
+        pickle.dump(r, open(output_file, "wb"))
         end_time(version)
 
     def origin_test_master(self, input_file, output_file, block_size=100000, test_size=2000):
@@ -221,8 +217,8 @@ class SampleConduct(object):
         the agent of mult-Theading for get origin sample
         """
 
-        temp_context = []
-        last_index = []
+        temp_context = ''
+        last_index = ''
         content = []
         response = []
         num = 0
@@ -230,62 +226,26 @@ class SampleConduct(object):
             tempword = self.origin_sample[index]
             if tempword == '\r\n':
                 num += 1
-                content.append(temp_context[:-1])
-                # content.append(temp_context[:-1])
-                # content.append(temp_context[:-1])
-                response.append(last_index[:-1])
-                temp_context = []
-                last_index = []
+                content.append(temp_context[:-5])
+                response.append(last_index[:-5])
+                temp_context = ''
+                last_index = ''
             else:
                 if len(last_index):
                     temp_context += last_index
-                last_index = tempword[:-1].strip().split()
-                last_index = [(self.word2id[LCS(index)] if LCS(index) in self.word2id else 0) for index in last_index]
-                last_index.append(1)
+                last_index = tempword[:-1].strip() + '[SEP]'
         # r = []
         # totalnum = len(response)
-        # for idx, index in enumerate(response):
-        #     r.append(index)
-        #     r.append(response[unique_randomint(0, totalnum, 1, [idx])[0]])
-        #     r.append(response[unique_randomint(0, totalnum, 1, [idx])[0]])
-        self.content[block] = content
+        # for idx, index in enumerate(content):
+        #     r.append('1 ' + index + '#' + response[idx])
+        #     r.append('0 ' + index + '#' +
+        #              response[unique_randomint(0, totalnum, 1, [idx])[0]])
+        #     r.append('0 ' + index + '#' +
+        #              response[unique_randomint(0, totalnum, 1, [idx])[0]])
         self.response[block] = response
+        self.content[block] = content
 
-    def origin_t_direct(self, input_file='SMN/data/test_SMN.pkl', output_file='SMN/data/weibo/val_Dataset.pkl', small_size=10000, word2id_file='SMN/data/weibo/word2id.pkl'):
-        """
-        origin sample direct no theading
-        """
-
-        version = begin_time()
-        test = pickle.load(open(input_file,'rb'))
-        self.word2id = pickle.load(open(word2id_file, 'rb'))
-        c = []
-        r = []
-        num = 0
-        for tempword in test:
-            words = tempword[2:].split('#')
-            contexts = words[:-1]
-            replys = words[-1]
-            context = []
-            reply = []
-            for idx,index in enumerate(words):
-                if idx:
-                    context.append(1)
-                temp_context = index.split()
-                for temp in temp_context:
-                    context.append(self.word2id[LCS(temp)] if LCS(temp) in self.word2id else 0)
-            for index in replys:
-                temp_reply = index.split()
-                for temp in temp_reply:
-                    reply.append(self.word2id[LCS(temp)] if LCS(temp) in self.word2id else 0)
-            r.append(reply)
-            c.append(context)
-        y=[1,0,0,0,0,0,0,0,0,0]*(len(test) //10)
-        val_data = {'y': y, 'r': r, 'c': c}
-        pickle.dump(val_data, open(output_file, "wb"))
-        end_time(version)
-
-    def origin_sample_direct(self, input1_file, input2_file, output_file, small_size=10000, word2id_file='SMN/data/weibo/word2id.pkl'):
+    def origin_sample_direct(self, input1_file, input2_file, output_file, small_size=2000):
         """
         origin sample direct no theading
         """
@@ -295,45 +255,29 @@ class SampleConduct(object):
             sample1 = f.readlines()
         with codecs.open(input2_file, 'r', 'utf-8') as f:
             sample2 = f.readlines()
-        self.word2id = pickle.load(open(word2id_file, 'rb'))
-        temp_context = []
-        last_index = []
-        c = []
+
+        temp_context = ''
+        last_index = ''
+        content = []
         r = []
-        num = 0
         for tempword in sample1:
-            if tempword == '\r\n':
-                num += 1
-                for idx in range(10):
-                    c.append(temp_context + last_index[:-1])
-                temp_context = []
-                last_index = []
+            if tempword == '\n':
+                content.append(temp_context + last_index[:-5])
+                temp_context = ''
+                last_index = ''
             else:
                 if len(last_index):
                     temp_context += last_index
-                last_index = tempword[:-1].replace('\"','').replace('\\','').strip().split()
-                if '\"' in last_index:
-                    print(last_index)
-                last_index = [(self.word2id[LCS(index)] if LCS(index) in self.word2id else 0) for index in last_index]
-                last_index.append(1)
-        # for idx in range(10):
-        #     c.append(temp_context + last_index[:-1])
+                last_index = tempword[:-1].strip() + '[SEP]'
         num = 0
         print(len(sample2))
-        for index,tempword in enumerate(sample2):
-            if tempword != '\r\n':
-                num +=1
-                last_index = tempword[:-1].replace('\"','').replace('\\','').strip().split()
-                last_index = [(self.word2id[LCS(index)] if LCS(index) in self.word2id else 0) for index in last_index]
-                r.append(last_index)
+        for index, tempword in enumerate(sample2):
+            if tempword != '\n':
+                last_index = tempword[:-1].replace('\"', '').replace('\\', '')
+                r.append('0#' + content[num] + '#' + last_index)
             else:
-                if num != 10:
-                    r.append(last_index)
-                    print(num,index)
-                num = 0
-        y=[1,0,0,0,0,0,0,0,0,0]*small_size
-        val_data = {'y': y, 'r': r, 'c': c}
-        pickle.dump(val_data, open(output_file, "wb"))
+                num += 1
+        pickle.dump(r, open(output_file, "wb"))
 
         end_time(version)
 
