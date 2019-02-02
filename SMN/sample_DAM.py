@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-12-23 10:54:27
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2019-01-01 09:14:38
+# @Last Modified time: 2019-01-15 20:50:46
 
 import codecs
 import logging
@@ -153,6 +153,11 @@ class SampleConduct(object):
             work.start()
         for work in threadings:
             work.join()
+        content_order = self.content.keys()
+        content_order.sort()
+        response_order = self.response.keys()
+        response_order.sort()
+
         content = sum(list(self.content.values()), [])
         response = sum(list(self.response.values()), [])
 
