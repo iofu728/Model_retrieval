@@ -2,7 +2,7 @@
 # @Author: gunjianpan
 # @Date:   2018-12-20 11:27:21
 # @Last Modified by:   gunjianpan
-# @Last Modified time: 2018-12-26 21:24:36
+# @Last Modified time: 2019-01-24 15:44:07
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
@@ -35,7 +35,7 @@ def drop_col_not_req(df, cols):
 
 class titanic_lgb(object):
     """
-    train for titanic by lightbgm
+    train for titanic by lightgbm
     """
 
     def fill_missing_age(self, missing_age_train, missing_age_test):
@@ -248,12 +248,12 @@ class titanic_lgb(object):
             wait.to_csv('titanic/result.csv', index=False)
 
 
-y_pred = pd.DataFrame(y_pred)[0].map(
-    lambda y: 0 if y < 0.51 or (y > 0.516 and y < 0.517) else 1)
-PassengerId = pd.DataFrame()
-PassengerId = y_pred.index.map(lambda temp_id: temp_id + begin_id)
-wait = pd.concat([pd.DataFrame(PassengerId), y_pred], axis=1)
-wait.to_csv('titanic/result.csv', index=False)
+# y_pred = pd.DataFrame(y_pred)[0].map(
+#     lambda y: 0 if y < 0.51 or (y > 0.516 and y < 0.517) else 1)
+# PassengerId = pd.DataFrame()
+# PassengerId = y_pred.index.map(lambda temp_id: temp_id + begin_id)
+# wait = pd.concat([pd.DataFrame(PassengerId), y_pred], axis=1)
+# wait.to_csv('titanic/result.csv', index=False)
 
     def optimize_model(self):
         """

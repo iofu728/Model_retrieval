@@ -9,6 +9,9 @@
 
 * [VSM(updated in 2018/11/13)](#1)
 * [SMN(updated in 2018/12/04)](#2)
+* [Bert(updated in 2019/02/02)](#3)
+* [LightGBM(updated in 2019/02/02)](#4)
+* [DMN(updated in 2019/02/02)](#5)
 
 <h2 id="1">VSM</h2>
 
@@ -82,3 +85,7 @@ SMN process:
   + got negative & true sample
 * `SMN.SMN_Last.run_model()`
   + run SMN model
+
+<h2 id="3">Bert</h2>
+<h2 id="4">LightGBM</h2>
+<h2 id="5">DMN</h2>

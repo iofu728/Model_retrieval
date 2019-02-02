@@ -8,6 +8,7 @@ __pycache__
 *.txt
 *.csv
 *.tar.gz
+*.zip
 
 # idea
 .idea/
@@ -18,3 +19,6 @@ __pycache__
 
 # venv
 venv
+
+# pkuseg
+pkuseg
