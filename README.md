@@ -10,8 +10,11 @@
 * [VSM(updated in 2018/11/13)](#1)
 * [SMN(updated in 2018/12/04)](#2)
 * [Bert(updated in 2019/02/02)](#3)
-* [LightGBM(updated in 2019/02/02)](#4)
+* [LightGBM(updated in 2019/03/24)](#4)
 * [DMN(updated in 2019/02/02)](#5)
+* [bert_embedding(updated in 2019/03/24)](#6)
+* [word2vec(updated in 2019/03/24)](#7)
+* [wordNet(updated in 2019/03/24)](#8)
 
 <h2 id="1">VSM</h2>
 
@@ -89,3 +92,6 @@ SMN process:
 <h2 id="3">Bert</h2>
 <h2 id="4">LightGBM</h2>
 <h2 id="5">DMN</h2>
+<h2 id="6">bert_embedding</h2>
+<h2 id="7">word2vec</h2>
+<h2 id="8">wordNet</h2>
