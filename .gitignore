@@ -3,6 +3,16 @@
 # python cache
 __pycache__
 
+# jupyter
+.ipynb_checkpoints
+
+# test
+test*
+Untitled*
+
+log
+checkpoints
+
 # data
 */data/
 *.txt
