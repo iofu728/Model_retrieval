@@ -12,6 +12,7 @@
 * [Bert(updated in 2019/02/02)](#3)
 * [LightGBM(updated in 2019/03/24)](#4)
 * [DMN(updated in 2019/02/02)](#5)
+* [flask(updated in 2019/02/02)](#9)
 * [bert_embedding(updated in 2019/03/24)](#6)
 * [word2vec(updated in 2019/03/24)](#7)
 * [wordNet(updated in 2019/03/24)](#8)
@@ -95,3 +96,4 @@ SMN process:
 <h2 id="6">bert_embedding</h2>
 <h2 id="7">word2vec</h2>
 <h2 id="8">wordNet</h2>
+<h2 id="9">flask</h2>
