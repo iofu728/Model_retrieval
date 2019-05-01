@@ -212,8 +212,9 @@ else
 
         curl -fLo ${VIMPLUG_P} --create-dirs ${VIMPLUG_URL}
         cp ${VIMRC} ${VIMRC}.old
+        truncate -s 0 ${VIMRC}
 
-        curl -fsSL ${VIMPLUG_URL} >${VIMRC}
+        curl -fsSL ${VIMRC_URL} >>${VIMRC}
         vim +'PlugInstall --sync' +qall &>/dev/null
 
     fi
