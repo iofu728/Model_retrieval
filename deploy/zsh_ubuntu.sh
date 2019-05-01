@@ -157,6 +157,10 @@ else
                 yum epel-release -y && yum repolist && yum install dpkg-devel dpkg-dev -y
             fi
             if [ -z "$(strings /lib64/libc.so.6 | sed -n '/GLIBC_2.18/p')" ]; then
+                if [ -z "$(which gcc | sed -n '/\/gcc/p')" ]; then
+                    echo_color yellow "${SIGN_2} ${INS} gcc ${SIGN_2}"
+                    yum install gcc -y
+                fi
                 echo_color yellow "${SIGN_2} ${DOW} ${GLIBC} ${SIGN_2}"
                 cd ${ZDOTDIR:-$HOME} && wget ${GLIBC_URL}
                 tar -zxvf ${GLIBC_TAR} && cd ${GLIBC}
