@@ -161,7 +161,7 @@ else
                 cd ${ZDOTDIR:-$HOME} && wget ${GLIBC_URL}
                 tar -zxvf ${GLIBC_TAR} && cd ${GLIBC}
                 echo_color yellow "${SIGN_2} ${INS} ${GLIBC} ${SIGN_2}"
-                mkdir build && cd build && ../configure --prefix=/usr
+                mkdir build && cd build && bash ../configure --prefix=/usr
                 make -j4 >/dev/null && make install >/dev/null
             fi
         fi
