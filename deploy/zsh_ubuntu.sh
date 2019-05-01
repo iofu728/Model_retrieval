@@ -107,7 +107,7 @@ else
 
         # install fd, url from https://github.com/sharkdp/fd/releases
         echo_color yellow '---__--- Downloading fd  ---__---'
-        wget https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd_${FD_VERSION}_amd64.deb
+        curl https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd_${FD_VERSION}_amd64.deb >>fd_${FD_VERSION}_amd64.deb
         dpkg -i fd_${FD_VERSION}_amd64.deb
 
         # alter filefind to fd
