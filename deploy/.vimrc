@@ -56,7 +56,7 @@ let g:vimtex_quickfix_mode=0
 set conceallevel=1
 let g:tex_conceal='abdmg'
 let g:seoul256_background = 236
-colo seoul256
 let g:go_version_warning = 0
+silent! colo seoul256
 
 call plug#end()
