@@ -91,8 +91,23 @@ check_install() {
     esac
 }
 
-if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
+update_list() {
+    case $DISTRIBUTION in
+    Ubuntu)
+        apt-get update -y
+        ;;
+    CentOS)
+        yum update -y
+        ;;
+    *)
+        echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
+        exit 1
+        ;;
+    esac
+}
 
+if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
+    update_list
     check_install zsh
     check_install curl
     check_install git
