@@ -211,7 +211,7 @@ else
         sh ${VIM_P}/install_awesome_vimrc.sh
 
         curl -fLo ${VIMPLUG_P} --create-dirs ${VIMPLUG_URL}
-        cp ${VIMRC} ${VIMRC}.old
+        cp ${VIMRC} ${VIMRC}.old.1
         truncate -s 0 ${VIMRC}
 
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
