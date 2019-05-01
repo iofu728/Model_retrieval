@@ -213,13 +213,12 @@ else
         curl -fLo ${VIMPLUG_P} --create-dirs ${VIMPLUG_URL}
         cp ${VIMRC} ${VIMRC}.old.1
         truncate -s 0 ${VIMRC}
-
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
-        echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
+
         if [ ! -z "$(ls /dev | sed -n '/tty/p')" ]; then
+            echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
             vim +'PlugInstall --sync' +qall &>/dev/null </dev/tty
         fi
-
     fi
 
     echo_color red "Warning: If you only execute ·${BASH_SH}·. You need ·${SOURCE_SH}· After running this shell."
