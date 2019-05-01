@@ -24,7 +24,7 @@ VIM_P=${ZDOTDIR:-$HOME}/.vim_runtime
 VIM_URL='https://github.com/amix/vimrc'
 VIMRC=${ZDOTDIR:-$HOME}/.vimrc
 
-BASH_SHELL='bash zsh_linux.sh'
+BASH_SHELL='bash zsh.sh'
 SOURCE_SH='source ${ZDOTDIR:-$HOME}/.zshrc'
 OH_MY_ZSH_URL='https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh'
 GITHUB='https://github.com/iofu728/zsh.sh'
@@ -34,6 +34,9 @@ ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
 
 HOMEBREW_URL='https://raw.github.com/Homebrew/install/master/install'
 HOMEBREW_TUNA='https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/'
+
+GLIBC_TAR='glibc-2.18.tar.gz'
+GLIBC_URL='http://mirrors.ustc.edu.cn/gnu/libc/'${GLIBC_TAR}
 
 SIGN_1='#-#-#-#-#-#-#-#-#-#'
 SIGN_2='---__---'
@@ -105,8 +108,8 @@ update_list() {
             git remote set-url origin ${HOMEBREW_TUNA}homebrew-core.git
         fi
         ;;
-    Ubuntu) apt-get update -y ;;
-    CentOS) yum update -y ;;
+    Ubuntu) apt-get update -y && apt-get install dpkg ;;
+    CentOS) yum update -y && yum install which -y ;;
     *) echo_color red ${ERROR_MSG} && exit 1 ;;
     esac
 }
@@ -116,7 +119,6 @@ if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
     check_install zsh
     check_install curl
     check_install git
-    check_install dpkg
     check_install vim
     chsh -s $(which zsh)
 
@@ -148,6 +150,21 @@ else
 
     # install fzf & bind default key-binding
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.fzf/p')" ]; then
+        if [ $DISTRIBUTION=='CentOS' ]; then
+            if [ -z "$(which dpkg | sed -n '/\/dpkg/p')" ]; then
+                echo_color yellow "${SIGN_2} ${INS} dpkg ${SIGN_2}"
+                yum epel-release -y && yum repolist && yum install dpkg-devel dpkg-dev -y
+            fi
+            if [ -z "$(strings /lib64/libc.so.6 | sed -n '/GLIBC_2.18/p')" ]; then
+                echo_color yellow "${SIGN_2} ${DOW} glibc 2.18 ${SIGN_2}"
+                cd ${ZDOTDIR:-$HOME} && wget ${GLIBC_URL}
+                tar -zxvf ${GLIBC_TAR}
+                echo_color yellow "${SIGN_2} ${INS} glibc 2.18 ${SIGN_2}"
+                mkdir build && cd build && ../configure --prefix=/usr
+                make -j4 >/dev/null && make install >/dev/null
+            fi
+        fi
+
         echo_color yellow "${SIGN_2} ${DOW} fzf ${SIGN_2}"
         git clone --depth 1 https://github.com/junegunn/fzf ${FZF}
         echo_color yellow "${SIGN_2} ${INS} fzf ${SIGN_2}"
