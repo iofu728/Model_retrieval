@@ -20,11 +20,15 @@ FZF=${ZDOTDIR:-$HOME}/.fzf
 FD_P=fd_${FD_VERSION}_amd64.deb
 FD_URL=https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_P}
 
+VIM_P=${ZDOTDIR:-$HOME}/.vim_runtime
+VIM_URL='https://github.com/amix/vimrc'
+VIMRC=${ZDOTDIR:-$HOME}/.vimrc
+
 BASH_SHELL='bash zsh_linux.sh'
 SOURCE_SH='source ${ZDOTDIR:-$HOME}/.zshrc'
-OH_MY_ZSH_URL=https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh
+OH_MY_ZSH_URL='https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh'
 GITHUB='https://github.com/iofu728/zsh.sh'
-ZSH_USER_URL=https://github.com/zsh-users/
+ZSH_USER_URL='https://github.com/zsh-users/'
 ZSH_HL_URL=${ZSH_USER_URL}${ZSH_HL}
 ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
 SIGN_1='#-#-#-#-#-#-#-#-#-#'
@@ -158,6 +162,18 @@ else
         # if you want to DIY key of like 'Atl + C'
         # maybe line-num is not 64, but must nearby
         sed -i 's/\\ec/^\\/' ${FZF}/shell/key-bindings.zsh
+    fi
+
+    # vimrc
+    if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.vim_runtime/p')" ]; then
+        git clone --depth=1 ${VIM_URL} ${VIM_P}
+        sh ${VIM_P}/install_awesome_vimrc.sh
+
+        echo -e 'set runtimepath+=~/.vim_runtime÷\nset nocompatible
+set nu!\nset history=1000\nset autoindent\nset cindent\nset smartindent\nset tabstop=4\nset ai!\nset showmatch\nset guioptions-=T
+set vb t_vb=\nset ruler\nset incsearch\n\nsource ~/.vim_runtime/vimrcs/basic.vim\nsource ~/.vim_runtime/vimrcs/filetypes.vim
+source ~/.vim_runtime/vimrcs/plugins_config.vim\nsource ~/.vim_runtime/vimrcs/extended.vim' >>${VIMRC}
+
     fi
 
     echo_color red "Warning: If you only execute ·${BASH_SH}·. You need ·${SOURCE_SH}· After running this shell."
