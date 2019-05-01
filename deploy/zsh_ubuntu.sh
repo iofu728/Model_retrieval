@@ -214,6 +214,7 @@ else
         cp ${VIMRC} ${VIMRC}.old.1
         truncate -s 0 ${VIMRC}
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
+        ls -lh /dev | grep tty
 
         if [ ! -z "$(ls /dev | sed -n '/tty/p')" ]; then
             echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
