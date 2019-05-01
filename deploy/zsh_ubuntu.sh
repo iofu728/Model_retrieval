@@ -35,7 +35,8 @@ ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
 HOMEBREW_URL='https://raw.github.com/Homebrew/install/master/install'
 HOMEBREW_TUNA='https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/'
 
-GLIBC_TAR='glibc-2.18.tar.gz'
+GLIBC='glibc-2.18'
+GLIBC_TAR=${GLIBC}'.tar.gz'
 GLIBC_URL='http://mirrors.ustc.edu.cn/gnu/libc/'${GLIBC_TAR}
 
 SIGN_1='#-#-#-#-#-#-#-#-#-#'
@@ -156,10 +157,10 @@ else
                 yum epel-release -y && yum repolist && yum install dpkg-devel dpkg-dev -y
             fi
             if [ -z "$(strings /lib64/libc.so.6 | sed -n '/GLIBC_2.18/p')" ]; then
-                echo_color yellow "${SIGN_2} ${DOW} glibc 2.18 ${SIGN_2}"
+                echo_color yellow "${SIGN_2} ${DOW} ${GLIBC} ${SIGN_2}"
                 cd ${ZDOTDIR:-$HOME} && wget ${GLIBC_URL}
-                tar -zxvf ${GLIBC_TAR}
-                echo_color yellow "${SIGN_2} ${INS} glibc 2.18 ${SIGN_2}"
+                tar -zxvf ${GLIBC_TAR} && cd ${GLIBC}
+                echo_color yellow "${SIGN_2} ${INS} ${GLIBC} ${SIGN_2}"
                 mkdir build && cd build && ../configure --prefix=/usr
                 make -j4 >/dev/null && make install >/dev/null
             fi
