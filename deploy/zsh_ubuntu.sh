@@ -116,6 +116,7 @@ if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
     check_install curl
     check_install git
     check_install dpkg
+    check_install vim
     chsh -s $(which zsh)
 
     echo_color yellow "${SIGN_1} ${INS} oh-my-zsh ${SIGN_1}"
@@ -145,7 +146,7 @@ else
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.fzf/p')" ]; then
         echo_color yellow "${SIGN_2} ${DOW} fzf ${SIGN_2}"
         git clone --depth 1 https://github.com/junegunn/fzf ${FZF}
-        echo_color yellow "${SIGN_2} Installing fzf ${SIGN_2}"
+        echo_color yellow "${SIGN_2} ${INS} fzf ${SIGN_2}"
         bash ${FZF}/install <<<'yyy'
 
         # install fd, url from https://github.com/sharkdp/fd/releases
@@ -166,13 +167,14 @@ else
 
     # vimrc
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.vim_runtime/p')" ]; then
+        echo_color yellow "${SIGN_2} ${DOW} vimrc ${SIGN_2}"
         git clone --depth=1 ${VIM_URL} ${VIM_P}
+        echo_color yellow "${SIGN_2} ${INS} vimrc ${SIGN_2}"
         sh ${VIM_P}/install_awesome_vimrc.sh
 
-        echo -e 'set runtimepath+=~/.vim_runtime÷\nset nocompatible
-set nu!\nset history=1000\nset autoindent\nset cindent\nset smartindent\nset tabstop=4\nset ai!\nset showmatch\nset guioptions-=T
-set vb t_vb=\nset ruler\nset incsearch\n\nsource ~/.vim_runtime/vimrcs/basic.vim\nsource ~/.vim_runtime/vimrcs/filetypes.vim
-source ~/.vim_runtime/vimrcs/plugins_config.vim\nsource ~/.vim_runtime/vimrcs/extended.vim' >>${VIMRC}
+        echo -e 'set nocompatible\nset nu!\nset history=1000\nset autoindent
+set cindent\nset smartindent\nset tabstop=4\nset ai!\nset showmatch\nset guioptions-=T
+set vb t_vb=\nset ruler\nset incsearch' >>${VIMRC}
 
     fi
 
