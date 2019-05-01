@@ -68,7 +68,7 @@ check_install() {
     esac
 }
 
-if [ ! -n "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
+if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
 
     check_install zsh
     check_install curl
