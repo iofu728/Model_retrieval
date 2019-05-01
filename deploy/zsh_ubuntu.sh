@@ -215,7 +215,8 @@ else
         truncate -s 0 ${VIMRC}
 
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
-        vim +'PlugInstall --sync' +qall &>/dev/null </dev/tty
+        echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
+        vim +'PlugInstall --sync' +qall &>/dev/null
 
     fi
 
