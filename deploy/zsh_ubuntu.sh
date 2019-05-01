@@ -22,6 +22,9 @@ FD_URL=https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/
 VIM_P=${ZDOTDIR:-$HOME}/.vim_runtime
 VIM_URL='https://github.com/amix/vimrc'
 VIMRC=${ZDOTDIR:-$HOME}/.vimrc
+VIMPLUG_URL='https://raw.github.com/junegunn/vim-plug/master/plug.vim'
+VIMPLUG_P=${ZDOTDIR:-$HOME}'/.vim/autoload/plug.vim'
+VIMRC_URL='https://raw.github.com/iofu728/Model_retrieval/develop/deploy/.vimrc'
 
 BASH_SHELL='bash zsh.sh'
 SOURCE_SH='source ${ZDOTDIR:-$HOME}/.zshrc'
@@ -181,7 +184,7 @@ else
         *)
             BIT=$(dpkg --print-architecture)
             FD_P=fd_${FD_VERSION}_${BIT}.deb
-            wget ${FD_URL}${FD_P} && dpkg -i ${FD_P}
+            cd ${ZDOTDIR:-$HOME} && wget ${FD_URL}${FD_P} && dpkg -i ${FD_P}
             ;;
         esac
 
@@ -207,9 +210,11 @@ else
         echo_color yellow "${SIGN_2} ${INS} vimrc ${SIGN_2}"
         sh ${VIM_P}/install_awesome_vimrc.sh
 
-        echo -e 'set nocompatible\nset nu!\nset history=1000\nset autoindent
-set cindent\nset smartindent\nset tabstop=4\nset ai!\nset showmatch\nset guioptions-=T
-set vb t_vb=\nset ruler\nset incsearch' >>${VIMRC}
+        curl -fLo ${VIMPLUG_P} --create-dirs ${VIMPLUG_URL}
+        cp ${VIMRC} ${VIMRC}.old
+
+        curl -fsSL ${VIMPLUG_URL} >${VIMRC}
+        vim +'PlugInstall --sync' +qall &>/dev/null
 
     fi
 
