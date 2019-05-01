@@ -31,6 +31,9 @@ GITHUB='https://github.com/iofu728/zsh.sh'
 ZSH_USER_URL='https://github.com/zsh-users/'
 ZSH_HL_URL=${ZSH_USER_URL}${ZSH_HL}
 ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
+
+HOMEBREW_URL='https://raw.github.com/Homebrew/install/master/install'
+
 SIGN_1='#-#-#-#-#-#-#-#-#-#'
 SIGN_2='---__---'
 SIGN_3='**************'
@@ -39,8 +42,10 @@ DOW='Downloading'
 
 DISTRIBUTION=$(lsb_release -a 2>/dev/null | grep -n 'Distributor ID:.*' | awk '{print $3}' 2>/dev/null)
 if [ -z $DISTRIBUTION ]; then
-    if [ ! -z $(which yum 2>/dev/null) ]; then
+    if [ ! -z "$(which yum 2>/dev/null | sed -n '/\/yum/p')" ]; then
         DISTRIBUTION=CentOS
+    elif [ ! -z "$(sw_vers 2>/dev/null | sed -n '/Mac/p')" ]; then
+        DISTRIBUTION=MacOS
     elif [ ! -z "$(which apt 2>/dev/null | sed -n '/\/apt/p')" ]; then
         DISTRIBUTION=Ubuntu
     fi
@@ -75,34 +80,43 @@ echo_color() {
 }
 
 check_install() {
-    case $DISTRIBUTION in
-    Ubuntu)
-        if [ -z "$(which ${1} | sed -n '/\/'${1}'/p')" ]; then
-            echo_color green "${SIGN_1} ${INS} ${1} ${SIGN_1}"
-            apt-get install ${1} -y
-        fi
-        ;;
-    CentOS)
-        if [ -z $(which ${1} 2>/dev/null) ]; then
-            echo_color green "${SIGN_1} ${INS} ${1} ${SIGN_1}"
-            yum install ${1} -y
-        fi
-        ;;
-    *)
-        echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
-        exit 2
-        ;;
-    esac
+    if [ -z "$(which ${1} 2>/dev/null | sed -n '/\/'${1}'/p')" ]; then
+        echo_color green "${SIGN_1} ${INS} ${1} ${SIGN_1}"
+        case $DISTRIBUTION in
+        MacOS) brew install ${1} ;;
+        Ubuntu) apt-get install ${1} -y ;;
+        CentOS) yum install ${1} -y ;;
+        *)
+            echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
+            exit 2
+            ;;
+        esac
+    fi
+
 }
 
 update_list() {
     case $DISTRIBUTION in
-    Ubuntu)
-        apt-get update -y
+    MacOS)
+        xcode-select --install
+        # Homebrew
+        if [ -z "$(which brew | sed -n '/\/brew/p')" ]; then
+            echo_color yellow "${SIGN_2} ${DOW} homebrew ${SIGN_2}"
+            wget ${HOMEBREW_URL}
+            echo_color yellow "${SIGN_2} ${INS} homebrew ${SIGN_2}"
+            /usr/bin/ruby install
+
+            echo_color green "${SIGN_1} ${INS} git ${SIGN_1}"
+            brew install git
+
+            cd "$(brew --repo)"
+            git remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+            cd "$(brew --repo)/Library/Taps/homebrew/homebrew-core"
+            git remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+        fi
         ;;
-    CentOS)
-        yum update -y
-        ;;
+    Ubuntu) apt-get update -y ;;
+    CentOS) yum update -y ;;
     *)
         echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
         exit 1
@@ -140,7 +154,10 @@ else
     fi
 
     # change ~/.zshrc
-    sed -i 's/plugins=(git)/plugins=(git docker zsh-autosuggestions)/' ${ZSHRC}
+    case $DISTRIBUTION in
+    MacOS) sed -i '' 's/plugins=(git)/plugins=(git docker zsh-autosuggestions)/' ${ZSHRC} ;;
+    *) sed -i 's/plugins=(git)/plugins=(git docker zsh-autosuggestions)/' ${ZSHRC} ;;
+    esac
 
     # install fzf & bind default key-binding
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.fzf/p')" ]; then
@@ -151,8 +168,10 @@ else
 
         # install fd, url from https://github.com/sharkdp/fd/releases
         echo_color yellow "${SIGN_2} ${DOW} fd ${SIGN_2}"
-        wget ${FD_URL}
-        dpkg -i ${FD_P}
+        case $DISTRIBUTION in
+        MacOS) check_install fd ;;
+        *) wget ${FD_URL} && dpkg -i ${FD_P} ;;
+        esac
 
         # alter filefind to fd
         echo "export FZF_DEFAULT_COMMAND='fd --type file'" >>${ZSHRC}
@@ -162,7 +181,11 @@ else
         # Ctrl+R History command; Ctrl+R file catalog
         # if you want to DIY key of like 'Atl + C'
         # maybe line-num is not 64, but must nearby
-        sed -i 's/\\ec/^\\/' ${FZF}/shell/key-bindings.zsh
+        case $DISTRIBUTION in
+        MacOS) sed -i '' 's/\\ec/^\\/' ${FZF}/shell/key-bindings.zsh ;;
+        *) sed -i 's/\\ec/^\\/' ${FZF}/shell/key-bindings.zsh ;;
+        esac
+
     fi
 
     # vimrc
