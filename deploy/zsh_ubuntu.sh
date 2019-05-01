@@ -151,7 +151,7 @@ else
 
     # install fzf & bind default key-binding
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.fzf/p')" ]; then
-        if [ -z "$(echo $DISTRIBUTION | sed -n '/CentOS/p')" ]; then
+        if [ ! -z "$(echo $DISTRIBUTION | sed -n '/CentOS/p')" ]; then
             if [ -z "$(which dpkg | sed -n '/\/dpkg/p')" ]; then
                 echo_color yellow "${SIGN_2} ${INS} dpkg ${SIGN_2}"
                 yum epel-release -y && yum repolist && yum install dpkg-devel dpkg-dev -y
