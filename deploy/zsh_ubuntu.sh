@@ -17,8 +17,7 @@ ZSH_HL_P=${ZSH_P}${ZSH_HL}
 ZSH_AS_P=${ZSH_P}${ZSH_AS}
 ZSHRC=${ZDOTDIR:-$HOME}/.zshrc
 FZF=${ZDOTDIR:-$HOME}/.fzf
-FD_P=fd_${FD_VERSION}_amd64.deb
-FD_URL=https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_P}
+FD_URL=https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/
 
 VIM_P=${ZDOTDIR:-$HOME}/.vim_runtime
 VIM_URL='https://github.com/amix/vimrc'
@@ -179,7 +178,11 @@ else
         echo_color yellow "${SIGN_2} ${DOW} fd ${SIGN_2}"
         case $DISTRIBUTION in
         MacOS) check_install fd ;;
-        *) wget ${FD_URL} && dpkg -i ${FD_P} ;;
+        *)
+            BIT=$(dpkg --print-architecture)
+            FD_P=fd_${FD_VERSION}_${BIT}.deb
+            wget ${FD_URL}${FD_P} && dpkg -i ${FD_P}
+            ;;
         esac
 
         # alter filefind to fd
