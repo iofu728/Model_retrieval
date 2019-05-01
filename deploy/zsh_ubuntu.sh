@@ -3,7 +3,7 @@
 # @Date:   2019-04-30 13:26:25
 # @Last Modified time: 2019-05-01 02:03:39
 # A zsh deploy shell for ubuntu.
-# In this shell, will install zsh, oh-my-zsh, zsh-syntax-highlighting, zsh-autosuggestions, fzf
+# In this shell, will install zsh, oh-my-zsh, zsh-syntax-highlighting, zsh-autosuggestions, fzf, vimrc
 
 set -e
 
@@ -33,12 +33,14 @@ ZSH_HL_URL=${ZSH_USER_URL}${ZSH_HL}
 ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
 
 HOMEBREW_URL='https://raw.github.com/Homebrew/install/master/install'
+HOMEBREW_TUNA='https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/'
 
 SIGN_1='#-#-#-#-#-#-#-#-#-#'
 SIGN_2='---__---'
 SIGN_3='**************'
 INS='Instaling'
 DOW='Downloading'
+ERROR_MSG="Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
 
 DISTRIBUTION=$(lsb_release -a 2>/dev/null | grep -n 'Distributor ID:.*' | awk '{print $3}' 2>/dev/null)
 if [ -z $DISTRIBUTION ]; then
@@ -61,21 +63,12 @@ NC='\033[0m'
 
 echo_color() {
     case ${1} in
-    red)
-        echo -e "${RED} ${2} ${NC}"
-        ;;
-    green)
-        echo -e "${GREEN} ${2} ${NC}"
-        ;;
-    yellow)
-        echo -e "${YELLOW} ${2} ${NC}"
-        ;;
-    blue)
-        echo -e "${BLUE} ${2} ${NC}"
-        ;;
-    cyan)
-        echo -e "${CYAN} ${2} ${NC}"
-        ;;
+    red) echo -e "${RED} ${2} ${NC}" ;;
+    green) echo -e "${GREEN} ${2} ${NC}" ;;
+    yellow) echo -e "${YELLOW} ${2} ${NC}" ;;
+    blue) echo -e "${BLUE} ${2} ${NC}" ;;
+    cyan) echo -e "${CYAN} ${2} ${NC}" ;;
+    *) echo ${2} ;;
     esac
 }
 
@@ -86,10 +79,7 @@ check_install() {
         MacOS) brew install ${1} ;;
         Ubuntu) apt-get install ${1} -y ;;
         CentOS) yum install ${1} -y ;;
-        *)
-            echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
-            exit 2
-            ;;
+        *) echo_color red ${ERROR_MSG} && exit 2 ;;
         esac
     fi
 
@@ -110,17 +100,14 @@ update_list() {
             brew install git
 
             cd "$(brew --repo)"
-            git remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+            git remote set-url origin ${HOMEBREW_TUNA}brew.git
             cd "$(brew --repo)/Library/Taps/homebrew/homebrew-core"
-            git remote set-url origin https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git
+            git remote set-url origin ${HOMEBREW_TUNA}homebrew-core.git
         fi
         ;;
     Ubuntu) apt-get update -y ;;
     CentOS) yum update -y ;;
-    *)
-        echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
-        exit 1
-        ;;
+    *) echo_color red ${ERROR_MSG} && exit 1 ;;
     esac
 }
 
