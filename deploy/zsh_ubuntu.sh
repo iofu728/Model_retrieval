@@ -7,10 +7,33 @@
 
 set -e
 
+# some constant params
 FD_VERSION=7.3.0
+ZSH_HL=zsh-syntax-highlighting
+ZSH_AS=zsh-autosuggestions
 ZSH_CUSTOM=${ZSH}/custom
-DISTRIBUTION=$(lsb_release -a 2>/dev/null | grep -n 'Distributor ID:.*' | awk '{print $3}' 2>/dev/null)
+ZSH_P=${ZSH_CUSTOM}/plugins/
+ZSH_HL_P=${ZSH_P}${ZSH_HL}
+ZSH_AS_P=${ZSH_P}${ZSH_AS}
+ZSHRC={ZDOTDIR:-$HOME}/.zshrc
+FZF=${ZDOTDIR:-$HOME}/.fzf
+FD_P=fd_${FD_VERSION}_amd64.deb
+FD_URL=https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/${FD_P}
 
+BASH_SHELL='bash zsh_linux.sh'
+SOURCE_SH='source ${ZDOTDIR:-$HOME}/.zshrc'
+OH_MY_ZSH_URL=https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh
+GITHUB='https://github.com/iofu728/zsh.sh'
+ZSH_USER_URL=https://github.com/zsh-users/
+ZSH_HL_URL=${ZSH_USER_URL}${ZSH_HL}
+ZSH_AS_URL=${ZSH_USER_URL}${ZSH_AS}
+SIGN_1='#-#-#-#-#-#-#-#-#-#'
+SIGN_2='---__---'
+SIGN_3='**************'
+INS='Instaling'
+DOW='Downloading'
+
+DISTRIBUTION=$(lsb_release -a 2>/dev/null | grep -n 'Distributor ID:.*' | awk '{print $3}' 2>/dev/null)
 if [ -z $DISTRIBUTION ]; then
     if [ ! -z $(which yum 2>/dev/null) ]; then
         DISTRIBUTION=CentOS
@@ -51,18 +74,18 @@ check_install() {
     case $DISTRIBUTION in
     Ubuntu)
         if [ -z "$(which ${1} | sed -n '/\/'${1}'/p')" ]; then
-            echo_color green "#-#-#-#-#-#-#-#-#-# Instaling ${1} #-#-#-#-#-#-#-#-#-#"
+            echo_color green "${SIGN_1} ${INS} ${1} ${SIGN_1}"
             apt-get install ${1} -y
         fi
         ;;
     CentOS)
         if [ -z $(which ${1} 2>/dev/null) ]; then
-            echo_color green "#-#-#-#-#-#-#-#-#-# Instaling ${1} #-#-#-#-#-#-#-#-#-#"
+            echo_color green "${SIGN_1} ${INS} ${1} ${SIGN_1}"
             yum install ${1} -y
         fi
         ;;
     *)
-        echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in https://github.com/iofu728/zsh.sh "
+        echo_color red "Sorry, this .sh does not support your Linux Distribution ${DISTRIBUTION}. Please open one issue in ${GITHUB} "
         exit 2
         ;;
     esac
@@ -76,52 +99,53 @@ if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.oh-my-zsh/p')" ]; then
     check_install dpkg
     chsh -s $(which zsh)
 
-    echo_color yellow '#-#-#-#-#-#-#-#-#-# Instaling oh-my-zsh #-#-#-#-#-#-#-#-#-#'
-    echo_color red '************** After Install you should ·bash zsh_linux.sh && source ${ZDOTDIR:-$HOME}/.zshrc · Again **************'
-    sh -c "$(curl -fsSL https://raw.github.com/robbyrussell/oh-my-zsh/master/tools/install.sh)"
+    echo_color yellow "${SIGN_1} ${INS} oh-my-zsh ${SIGN_1}"
+    echo_color red "${SIGN_3} After Install you should ·${BASH_SH} && ${SOURCE_SH}· Again ${SIGN_3}"
+    sh -c "$(curl -fsSL ${OH_MY_ZSH_URL})"
 else
     echo_color green "ZSH_CUSTOM: ${ZSH_CUSTOM}"
-    # syntax highlighting
-    if [ -z "$(ls ${ZSH_CUSTOM}/plugins | sed -n '/zsh-syntax-highlighting/p')" ]; then
-        echo_color yellow '---__--- Downloading zsh highlighting ---__---'
-        git clone https://github.com/zsh-users/zsh-syntax-highlighting ${ZSH_CUSTOM}/plugins/zsh-syntax-highlighting
-        echo "source \$ZSH_CUSTOM/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" >>${ZDOTDIR:-$HOME}/.zshrc
+
+    # zsh syntax highlighting
+    if [ -z "$(ls ${ZSH_P} | sed -n '/'${ZSH_HL}'/p')" ]; then
+        echo_color yellow "${SIGN_2} ${DOW} ${ZSH_HL} ${SIGN_2}"
+        git clone ${ZSH_HL_URL} ${ZSH_HL_P}
+        echo "source \$ZSH_CUSTOM/plugins/${ZSH_HL}/${ZSH_HL}.zsh" >>${ZSHRC}
     fi
 
     # zsh-autosuggestions
-    if [ -z "$(ls ${ZSH_CUSTOM}/plugins | sed -n '/zsh-autosuggestions/p')" ]; then
-        echo_color yellow '---__--- Downloading zsh autosuggestions ---__---'
-        git clone git://github.com/zsh-users/zsh-autosuggestions ${ZSH_CUSTOM}/plugins/zsh-autosuggestions
-        echo "source \$ZSH_CUSTOM/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh" >>${ZDOTDIR:-$HOME}/.zshrc
+    if [ -z "$(ls ${ZSH_P} | sed -n '/'${ZSH_AS}'/p')" ]; then
+        echo_color yellow "${SIGN_2} ${DOW} ${ZSH_AS} ${SIGN_2}"
+        git clone ${ZSH_AS_URL} ${ZSH_AS_P}
+        echo "source \$ZSH_CUSTOM/plugins/${ZSH_AS}/${ZSH_AS}.zsh" >>${ZSHRC}
     fi
 
     # change ~/.zshrc
-    sed -i 's/plugins=(git)/plugins=(git docker zsh-autosuggestions)/' ${ZDOTDIR:-$HOME}/.zshrc
+    sed -i 's/plugins=(git)/plugins=(git docker zsh-autosuggestions)/' ${ZSHRC}
 
     # install fzf & bind default key-binding
     if [ -z "$(ls -a ${ZDOTDIR:-$HOME} | sed -n '/\.fzf/p')" ]; then
-        echo_color yellow '---__--- Downloading fzf ---__---'
-        git clone --depth 1 https://github.com/junegunn/fzf ${ZDOTDIR:-$HOME}/.fzf
-        echo_color yellow '---__--- Installing fzf ---__---'
-        bash ${ZDOTDIR:-$HOME}/.fzf/install <<<'yyy'
+        echo_color yellow "${SIGN_2} ${DOW} fzf ${SIGN_2}"
+        git clone --depth 1 https://github.com/junegunn/fzf ${FZF}
+        echo_color yellow "${SIGN_2} Installing fzf ${SIGN_2}"
+        bash ${FZF}/install <<<'yyy'
 
         # install fd, url from https://github.com/sharkdp/fd/releases
-        echo_color yellow '---__--- Downloading fd  ---__---'
-        wget https://github.com/sharkdp/fd/releases/download/v${FD_VERSION}/fd_${FD_VERSION}_amd64.deb
-        dpkg -i fd_${FD_VERSION}_amd64.deb
+        echo_color yellow "${SIGN_2} ${DOW} fd ${SIGN_2}"
+        wget ${FD_URL}
+        dpkg -i ${FD_P}
 
         # alter filefind to fd
-        echo "export FZF_DEFAULT_COMMAND='fd --type file'" >>${ZDOTDIR:-$HOME}/.zshrc
-        echo "export FZF_CTRL_T_COMMAND=\$FZF_DEFAULT_COMMAND" >>${ZDOTDIR:-$HOME}/.zshrc
-        echo "export FZF_ALT_C_COMMAND='fd -t d . '" >>${ZDOTDIR:-$HOME}/.zshrc
+        echo "export FZF_DEFAULT_COMMAND='fd --type file'" >>${ZSHRC}
+        echo "export FZF_CTRL_T_COMMAND=\$FZF_DEFAULT_COMMAND" >>${ZSHRC}
+        echo "export FZF_ALT_C_COMMAND='fd -t d . '" >>${ZSHRC}
 
         # Ctrl+R History command; Ctrl+R file catalog
         # if you want to DIY key of like 'Atl + C'
         # maybe line-num is not 64, but must nearby
-        sed -i 's/\\ec/^\\/' ${ZDOTDIR:-$HOME}/.fzf/shell/key-bindings.zsh
+        sed -i 's/\\ec/^\\/' ${FZF}/shell/key-bindings.zsh
     fi
 
-    echo_color red 'Warning: If you only execute ·bash zsh_linux.sh·. You need ·source ${ZDOTDIR:-$HOME}/.zshrc· After running this shell.'
+    echo_color red "Warning: If you only execute ·${BASH_SH}·. You need ·${SOURCE_SH}· After running this shell."
     echo_color blue 'Zsh deploy finish. Now you can enjoy it💂'
-    echo_color yellow 'More Info Can Find in https://wyydsb.xin/other/terminal.html & https://github.com/iofu728/zsh.sh 😶'
+    echo_color yellow "More Info Can Find in https://wyydsb.xin/other/terminal.html & ${GITHUB} 😶"
 fi
