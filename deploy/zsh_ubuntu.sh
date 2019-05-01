@@ -214,9 +214,8 @@ else
         cp ${VIMRC} ${VIMRC}.old.1
         truncate -s 0 ${VIMRC}
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
-        ls -lh /dev | grep tty && ls -lh /dev | grep null
 
-        if [ ! -z "$(ls /dev | sed -n '/tty/p')" ]; then
+        if [ -z "$(echo ${IS_DOCKER})" ]; then
             echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
             vim +'PlugInstall --sync' +qall &>/dev/null </dev/tty
         fi
