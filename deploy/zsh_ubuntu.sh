@@ -216,7 +216,9 @@ else
 
         curl -fsSL ${VIMRC_URL} >>${VIMRC}
         echo_color yellow "${SIGN_2} ${INS} vim plugs ${SIGN_2}"
-        vim +'PlugInstall --sync' +qall &>/dev/null
+        if [ ! -z "$(ls /dev | sed -n '/tty/p')" ]; then
+            vim +'PlugInstall --sync' +qall &>/dev/null </dev/tty
+        fi
 
     fi
 
